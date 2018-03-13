@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<odoo> 
+<!-- Comentario en la Views --> 
+     <record id="view_ej_scat_allergens_form" model="ir.ui.view"> 
+        <field name="name">ej.scat_allergens.form</field> 
+        <field name="model">ej.scat_allergens</field> 
+        <field name="arch" type="xml"> 
+            <form string="Listado de Scat_allergens"> 
+                <group> 
+                    <field name="allergens"/> 
+                    <field name="refinterna"/> 
+                </group> 
+            </form> 
+        </field> 
+    </record> 
+     <record id="view_ej_scat_allergens_tree" model="ir.ui.view"> 
+        <field name="name">ej.scat_allergens.tree</field> 
+        <field name="model">ej.scat_allergens</field> 
+        <field name="arch" type="xml"> 
+           <tree> 
+                    <field name="allergens"/> 
+                    <field name="refinterna"/> 
+           </tree> 
+        </field> 
+    </record> 
+    <record model="ir.actions.act_window" id="act_ej_scat_allergens"> 
+        <field name="name">scat_allergens</field> 
+        <field name="type">ir.actions.act_window</field> 
+        <field name="res_model">ej.scat_allergens</field> 
+        <field name="view_type">form</field> 
+        <field name="view_mode">tree,form</field> 
+    </record> 
+<!--  Declaramos los menu --> 
+<menuitem id="ej_scat_allergens_menu" name="Scat_allergens" sequence="10"/> 
+<menuitem id="submenu_ej_scat_allergens_menu" name="Scat_allergens" sequence="10" parent="ej_scat_allergens_menu"/> 
+<menuitem id="submenu_ej_scat_allergens_action" name="Scat_allergens" sequence="10" parent="submenu_ej_scat_allergens_menu" action="act_ej_scat_allergens"/> 
+</odoo> 
