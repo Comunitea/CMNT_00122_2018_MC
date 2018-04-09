@@ -5,23 +5,16 @@ from datetime import datetime
 
 class herencia_res_partner(models.Model): 
     _inherit = "res.partner" 
-    x_ise_nie = fields.Char(string='x_ise_nie', required=True) 
+    x_ise_nie = fields.Char(string='x_ise_nie', required=False)  
+    x_ise_estado = fields.Char(string='x_ise_estado', required=False)  
+    x_ise_centro = fields.Char(string='x_ise_centro', required=False) 
  
-    x_ise_estado = fields.Char(string='x_ise_estado', required=True) 
+    y_ise_factura_aut = fields.Boolean(string='y_ise_factura_aut', required=False) 
  
-    x_ise_centro = fields.Char(string='x_ise_centro', required=True) 
- 
-    y_ise_factura_aut = fields.Boolean(string='y_ise_factura_aut', required=True) 
- 
-    y_ise_l = fields.Boolean(string='y_ise_l', required=True) 
- 
-    y_ise_m = fields.Boolean(string='y_ise_m', required=True) 
- 
-    y_ise_x = fields.Boolean(string='y_ise_x', required=True) 
- 
-    y_ise_j = fields.Boolean(string='y_ise_j', required=True) 
- 
-    y_ise_v = fields.Boolean(string='y_ise_v', required=True) 
- 
-    y_ise_s = fields.Boolean(string='y_ise_s', required=True) 
+    y_ise_l = fields.Boolean(string='y_ise_l', required=False)  
+    y_ise_m = fields.Boolean(string='y_ise_m', required=False)  
+    y_ise_x = fields.Boolean(string='y_ise_x', required=False)  
+    y_ise_j = fields.Boolean(string='y_ise_j', required=False)  
+    y_ise_v = fields.Boolean(string='y_ise_v', required=False)  
+    y_ise_s = fields.Boolean(string='y_ise_s', required=False) 
  
