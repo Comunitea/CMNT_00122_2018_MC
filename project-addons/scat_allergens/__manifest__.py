@@ -7,9 +7,9 @@
     'maintainer': 'freego.es',
     'website': 'http://www.freego.es',
     'license': 'AGPL-3',
-    'category': 'account.payment',
-    'summary': 'Sistema de Catering: Modulo alergenos',
-    'depends': ['account','account_accountant'],
+    'category': 'new',
+    'summary': 'Sistema de Catering: Módulo alergenos',
+    'depends': ['base'],
     'description': """
 Modulo alergenos
 ===================================================== 
@@ -17,7 +17,7 @@ Gestión de Alergenos
 """,
     'demo': [],
     'test': [],
-    'data': ['views/scat_allergens_view.xml',],
+    'data': ['views/scat_allergens_view.xml','security/ir.model.access.csv'],
     'installable': True,
     'auto_install': False,
 }
