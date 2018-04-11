@@ -12,12 +12,12 @@
     'depends': ['base'],
     'description': """
 Modulo alergenos
-===================================================== 
+=====================================================
 Gestión de Alergenos
 """,
-    'demo': [],
-    'test': [],
-    'data': ['views/scat_allergens_view.xml','security/ir.model.access.csv'],
+    'data': ['views/scat_allergens_view.xml',
+             'security/ir.model.access.csv',
+             'views/res_partner_view.xml'],
     'installable': True,
     'auto_install': False,
 }
