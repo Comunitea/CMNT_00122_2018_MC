@@ -9,4 +9,5 @@ class ResPartner(models.Model):
 
     _inherit = "res.partner"
 
-    allergens_ids = fields.Many2many('scat.allergens', string='Allergens')
+    allergens_ids = fields.Many2many('scat.allergens', string='Allergens',
+                                     track_visibility='onchange')

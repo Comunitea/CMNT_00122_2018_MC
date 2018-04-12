@@ -9,7 +9,7 @@
     'license': 'AGPL-3',
     'category': 'new',
     'summary': 'Sistema de Catering: Módulo alergenos',
-    'depends': ['base'],
+    'depends': ['base', 'mail_improved_tracking_value'],
     'description': """
 Modulo alergenos
 =====================================================
