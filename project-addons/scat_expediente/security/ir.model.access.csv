@@ -1,0 +1,2 @@
+"id","name","model_id:id","group_id:id","perm_read","perm_write","perm_create","perm_unlink"
+"scat_expediente_all","scat_expediente all","model_scat_expediente",,1,1,1,1
