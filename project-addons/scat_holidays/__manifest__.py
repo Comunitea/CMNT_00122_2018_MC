@@ -8,7 +8,7 @@
     'summary': 'Módulo Vacaciones',
     'depends': ['base', 'project',],
     'description': """
-Modulo Vacacioes
+Modulo Vacaciones
 Gestión de las vacaciones de los colegios
 """,
     'data': ['views/scat_holidays_view.xml',
