@@ -17,7 +17,8 @@ Gestión de Alergenos
 """,
     'data': ['views/scat_allergens_view.xml',
              'security/ir.model.access.csv',
-             'views/res_partner_view.xml'],
+             'views/res_partner_view.xml',
+             'views/product_template_view.xml',],
     'installable': True,
     'auto_install': False,
 }

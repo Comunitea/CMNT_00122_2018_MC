@@ -7,7 +7,7 @@
         <field name="inherit_id" ref="base.view_partner_form"/>
         <field name="arch" type="xml">
             <page name='internal_notes' position="after">
-                <page name="allergens" string="Allergens">
+                <page name="allergens" string="Alérgenos">
                     <field name="allergens_ids" nolabel="1" colspan="4"/>
                 </page>
             </page>
