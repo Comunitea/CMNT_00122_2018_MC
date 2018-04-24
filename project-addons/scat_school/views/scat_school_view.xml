@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record model="ir.ui.view" id="scat_school_tree_view">
+            <field name="name">scat_school.tree</field>
+            <field name="model">scat_school</field>
+            <field name="arch" type="xml">
+                <tree string="scat_school Type Tree">
+                    <field name="school_id"/>
+                    <field name="code"/>
+                    <field name="notes"/>
+                </tree>
+            </field>
+    </record>
+
+    <record model="ir.ui.view" id="scat_school_form">
+            <field name="name">scat_school.form</field>
+            <field name="model">scat_school</field>
+            <field name="arch" type="xml">
+                <form string="scat_school Type form">
+                    <group>
+                    <field name="school_id"/>
+                    <field name="code"/>
+                    <field name="notes"/>
+                    </group>
+                </form>
+            </field>
+    </record>
+
+
+
+    <record model="ir.actions.act_window" id = "scat_school">
+        <field name="name">scat_school</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">scat_school</field>
+        <field name="view_type">form</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+
+    <!-- Menú barra superior -->
+        <menuitem id="m_scat_school" name="Colegios"/>
+        <menuitem id="submenu_scat_school" name="Colegios" action="scat_school" parent="m_scat_school"/>
+
+
+</odoo>
