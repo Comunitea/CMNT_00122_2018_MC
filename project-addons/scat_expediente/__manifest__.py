@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 
 {
-    'name': 'scat_holidays',
+    'name': 'scat_expediente',
     'version': '10.0',
     'author': "Comunitea",
     'license': 'AGPL-3',
-    'summary': 'Módulo Vacaciones',
-    'depends': ['base', 'project',],
+    'summary': 'Módulo Expediente',
+    'depends': ['base',],
     'description': """
-Modulo Vacaciones
-Gestión de las vacaciones de los colegios
+Modulo Expediente
+Gestión de los expedientes de los colegios
 """,
-    'data': ['views/scat_holidays_view.xml',
+    'data': ['views/scat_expediente_view.xml',
               'security/ir.model.access.csv',],
     'installable': True,
     'auto_install': False,

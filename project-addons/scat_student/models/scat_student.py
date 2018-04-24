@@ -6,7 +6,7 @@ class scat_student(models.Model):
 
     name = fields.Many2one('res.partner', string="Alumno", required=True)
 
-    school = fields.Char(string="Colegio", required=True)
+    school = fields.Many2one('project.project', string="Colegio", required=True)
 
     month = fields.Char(string="Mes", required=True)
 
