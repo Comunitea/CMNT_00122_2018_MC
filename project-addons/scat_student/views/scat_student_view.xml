@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Window Action -->
+
+    <!-- Student -->
+    <record model="ir.actions.act_window" id="scat_student_list_action">
+            <field name="name">Alumnos</field>
+            <field name="res_model">scat.student</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+    </record>
+
+    <!--MENÚ -->
+    <menuitem id="main_scat_student_menu" name="Alumnos"/>
+    <menuitem id="scat_student_menu" name="Alumnos" parent="main_scat_student_menu" action="scat_student_list_action"/>
+
+    <!-- VISTAS -->
+
+    <!-- Vistas Alumno -->
+    <!-- Vista Arbol -->
+    <record model="ir.ui.view" id="scat_student_tree_view">
+            <field name="name">scat_student.tree</field>
+            <field name="model">scat.student</field>
+            <field name="arch" type="xml">
+                <tree string="Alumno">
+                    <field name="name"/>
+                    <field name="school"/>
+                    <field name="month"/>
+                    <field name="year"/>
+                    <field name="dia1"/>
+                    <field name="dia2"/>
+                    <field name="dia3"/>
+                    <field name="dia4"/>
+                    <field name="dia5"/>
+                    <field name="dia6"/>
+                    <field name="dia7"/>
+                    <field name="dia8"/>
+                    <field name="dia9"/>
+                    <field name="dia10"/>
+                    <field name="dia11"/>
+                    <field name="dia12"/>
+                    <field name="dia13"/>
+                    <field name="dia14"/>
+                    <field name="dia15"/>
+                    <field name="dia16"/>
+                    <field name="dia17"/>
+                    <field name="dia18"/>
+                    <field name="dia19"/>
+                    <field name="dia20"/>
+                    <field name="dia21"/>
+                    <field name="dia22"/>
+                    <field name="dia23"/>
+                    <field name="dia24"/>
+                    <field name="dia25"/>
+                    <field name="dia26"/>
+                    <field name="dia27"/>
+                    <field name="dia28"/>
+                    <field name="dia29"/>
+                    <field name="dia30"/>
+                    <field name="dia31"/>
+                </tree>
+            </field>
+    </record>
+
+    <!-- Vista Formulario -->
+    <record model="ir.ui.view" id="scat_student_form_view">
+        <field name="name">scat.student.form</field>
+        <field name="model">scat.student</field>
+        <field name="arch" type="xml">
+            <form string="Student Form">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="school"/>
+                        <field name="month"/>
+                        <field name="year"/>
+                        <field name="dia1"/>
+                        <field name="dia2"/>
+                        <field name="dia3"/>
+                        <field name="dia4"/>
+                        <field name="dia5"/>
+                        <field name="dia6"/>
+                        <field name="dia7"/>
+                        <field name="dia8"/>
+                        <field name="dia9"/>
+                        <field name="dia10"/>
+                        <field name="dia11"/>
+                        <field name="dia12"/>
+                        <field name="dia13"/>
+                        <field name="dia14"/>
+                        <field name="dia15"/>
+                        <field name="dia16"/>
+                        <field name="dia17"/>
+                        <field name="dia18"/>
+                        <field name="dia19"/>
+                        <field name="dia20"/>
+                        <field name="dia21"/>
+                        <field name="dia22"/>
+                        <field name="dia23"/>
+                        <field name="dia24"/>
+                        <field name="dia25"/>
+                        <field name="dia26"/>
+                        <field name="dia27"/>
+                        <field name="dia28"/>
+                        <field name="dia29"/>
+                        <field name="dia30"/>
+                        <field name="dia31"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+</odoo>
