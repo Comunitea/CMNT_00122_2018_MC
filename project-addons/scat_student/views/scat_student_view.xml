@@ -22,9 +22,9 @@
             <field name="name">scat_student.tree</field>
             <field name="model">scat.student</field>
             <field name="arch" type="xml">
-                <tree string="Alumno">
-                    <field name="name"/>
-                    <field name="school"/>
+                <tree string="Alumno" editable='top'>
+                    <field name="student_id"/>
+                    <field name="school_id"/>
                     <field name="month"/>
                     <field name="year"/>
                     <field name="dia1"/>
@@ -70,8 +70,8 @@
             <form string="Student Form">
                 <sheet>
                     <group>
-                        <field name="name"/>
-                        <field name="school"/>
+                        <field name="student_id"/>
+                        <field name="school_id"/>
                         <field name="month"/>
                         <field name="year"/>
                         <field name="dia1"/>

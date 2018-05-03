@@ -28,12 +28,14 @@
     'license': 'AGPL-3',
     'category': '',
     'summary': 'Modulo sobre colegio y alumno.',
-    'depends': ['base',],
+    'depends': ['base','scat_res_partner'],
     'description': """Modulo sobre colegio y alumno""",
     'demo': [],
     'test': [],
     'data': ['views/scat_school_student_view.xml',
+            'views/res_partner_view.xml',
              'security/ir.model.access.csv'],
     'installable': True,
     'auto_install': False,
 }
+

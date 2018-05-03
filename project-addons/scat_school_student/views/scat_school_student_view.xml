@@ -23,8 +23,8 @@
             <field name="model">scat.school.student</field>
             <field name="arch" type="xml">
                 <tree string="School-Student">
-                    <field name="school"/>
-                    <field name="student"/>
+                    <field name="school_id"/>
+                    <field name="student_id"/>
                     <field name="start_date"/>
                     <field name="end_date"/>
                 </tree>
@@ -39,8 +39,8 @@
             <form string="School-Student Form">
                 <sheet>
                     <group>
-                        <field name="school"/>
-                        <field name="student"/>
+                        <field name="school_id"/>
+                        <field name="student_id" />
                         <field name="start_date"/>
                         <field name="end_date"/>
                     </group>

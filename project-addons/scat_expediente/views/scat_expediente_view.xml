@@ -2,8 +2,8 @@
 <odoo>
 
     <record model="ir.ui.view" id="scat_expediente_tree_view">
-            <field name="name">scat_expediente.tree</field>
-            <field name="model">scat_expediente</field>
+            <field name="name">scat.expediente.tree</field>
+            <field name="model">scat.expediente</field>
             <field name="arch" type="xml">
                 <tree string="Expediente">
                     <field name="n_expediente"/>
@@ -17,8 +17,8 @@
     </record>
 
     <record model="ir.ui.view" id="scat_expediente_form">
-            <field name="name">scat_expediente.form</field>
-            <field name="model">scat_expediente</field>
+            <field name="name">scat.expediente.form</field>
+            <field name="model">scat.expediente</field>
             <field name="arch" type="xml">
                 <form string="Expediente">
                     <group>
@@ -35,9 +35,9 @@
 
 
     <record model="ir.actions.act_window" id = "scat_expediente">
-        <field name="name">scat_expediente</field>
+        <field name="name">scat.expediente</field>
         <field name="type">ir.actions.act_window</field>
-        <field name="res_model">scat_expediente</field>
+        <field name="res_model">scat.expediente</field>
         <field name="view_type">form</field>
         <field name="view_mode">tree,form</field>
     </record>

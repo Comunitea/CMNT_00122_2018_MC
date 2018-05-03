@@ -1,23 +1,43 @@
-<?xml version="1.0" encoding="UTF-8"?> 
-<odoo> 
-<!-- Comentario en la Views --> 
-     <record id="view_ej_herencia_res_partner_form" model="ir.ui.view"> 
-        <field name="name">herencia_res_partner.form</field> 
-        <field name="model">res.partner</field> 
-        <field name="inherit_id" ref="base.view_partner_form"/> 
-        <field name="arch" type="xml"> 
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+<!-- Comentario en la Views -->
+
+    <record id="action_view_calendar" model="ir.actions.act_window">
+            <field name="res_model">scat.student</field>
+            <field name="view_type">form</field>
+            <field name="name">Calendarios</field>
+            <field name="view_mode">tree,form</field>
+            <field name="src_model">res.partner</field>
+            <field name="domain">[('student_id','=',active_id)]</field>
+    </record>
+
+     <record id="view_ej_herencia_res_partner_form" model="ir.ui.view">
+
+        <field name="name">herencia_res_partner.form</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+
+        <div class="oe_button_box" name="button_box">
+             <button name="%(action_view_calendar)d" string="Calendarios" type="action" class="oe_stat_button" icon="fa-calendar-o" help="Muestra los calendarios del alumno"/>
+        </div>
+
+
         <field name="lang" position="after" >
-          <field name="x_ise_nie"/> 
-          <field name="x_ise_estado"/> 
-          <field name="x_ise_centro"/> 
-          <field name="y_ise_factura_aut"/> 
-          <field name="y_ise_l"/> 
-          <field name="y_ise_m"/> 
-          <field name="y_ise_x"/> 
-          <field name="y_ise_j"/> 
-          <field name="y_ise_v"/> 
-          <field name="y_ise_s"/> 
-        </field> 
-        </field> 
-    </record> 
-</odoo> 
+
+          <field name="x_ise_nie" />
+          <field name="x_ise_estado"/>
+          <field name="x_ise_centro"/>
+          <field name="y_ise_factura_aut"/>
+          <field name="y_ise_l" attrs="{'invisible':[('y_ise_factura_aut','=', True)]}"/>
+          <field name="y_ise_m" attrs="{'invisible':[('y_ise_factura_aut','=', True)]}"/>
+          <field name="y_ise_x" attrs="{'invisible':[('y_ise_factura_aut','=', True)]}"/>
+          <field name="y_ise_j" attrs="{'invisible':[('y_ise_factura_aut','=', True)]}"/>
+          <field name="y_ise_v" attrs="{'invisible':[('y_ise_factura_aut','=', True)]}"/>
+          <field name="y_ise_s" attrs="{'invisible':[('y_ise_factura_aut','=', True)]}"/>
+        </field>
+        </field>
+    </record>
+</odoo>
+
+

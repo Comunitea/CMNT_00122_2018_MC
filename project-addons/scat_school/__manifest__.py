@@ -6,7 +6,7 @@
     'author': "Comunitea",
     'license': 'AGPL-3',
     'summary': 'Sistema de Catering: Módulo colegios',
-    'depends': ['base','project', ],
+    'depends': ['base','project', 'scat_student'],
     'description': """
 Modulo Colegios
 Gestión de colegios

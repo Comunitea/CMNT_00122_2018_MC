@@ -2,31 +2,30 @@
 <odoo>
 
     <record model="ir.ui.view" id="scat_holidays_tree_view">
-            <field name="name">scat_holidays.tree</field>
-            <field name="model">scat_holidays</field>
+            <field name="name">scat.holidays.tree</field>
+            <field name="model">scat.holidays</field>
             <field name="arch" type="xml">
                 <tree string="Vacaciones">
                     <field name="start_date"/>
                     <field name="end_date"/>
                     <field name="description"/>
-                    <field name="school_ids"/>
 
                 </tree>
             </field>
     </record>
 
     <record model="ir.ui.view" id="scat_holidays_form">
-            <field name="name">scat_holidays.form</field>
-            <field name="model">scat_holidays</field>
+            <field name="name">scat.holidays.form</field>
+            <field name="model">scat.holidays</field>
             <field name="arch" type="xml">
                 <form string="Vacaciones">
                     <group>
                     <field name="start_date"/>
                     <field name="end_date"/>
                     <field name="school_ids"/>
-
-                    </group>
                     <field name="description"/>
+                    </group>
+
                 </form>
             </field>
     </record>
@@ -34,9 +33,9 @@
 
 
     <record model="ir.actions.act_window" id = "scat_holidays">
-        <field name="name">scat_holidays</field>
+        <field name="name">scat.holidays</field>
         <field name="type">ir.actions.act_window</field>
-        <field name="res_model">scat_holidays</field>
+        <field name="res_model">scat.holidays</field>
         <field name="view_type">form</field>
         <field name="view_mode">tree,form</field>
     </record>
