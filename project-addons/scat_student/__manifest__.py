@@ -34,7 +34,8 @@
     'test': [],
     'data': ['data/scat_student_holidays.xml',
              'views/scat_student_view.xml',
-             'security/ir.model.access.csv'],
+             'security/ir.model.access.csv',
+             'security/scat_student_security.xml'],
     'installable': True,
     'auto_install': False,
 }

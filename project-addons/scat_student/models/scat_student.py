@@ -10,6 +10,7 @@ import calendar
 class scat_student(models.Model):
     _name = "scat.student"
     _rec_name ='student_id'
+    _order = "start_date desc,school_id"
 
     student_id = fields.Many2one('res.partner', string="Alumno", required=True)
 
@@ -18,6 +19,7 @@ class scat_student(models.Model):
     month = fields.Char(string="Mes", required=True)
 
     year = fields.Char(string="Año", required=True)
+    start_date = fields.Date(readonly=True)
 
 
 
@@ -71,8 +73,8 @@ class scat_student(models.Model):
 
             dias_festivos=self.dias_festivos(first_day, last_date,school)
 
-            for student_seleccionado in self.env['res.partner'].search([('active_school_id', '=', school.id), ('x_ise_estado', '=', 'usuario')]):
-                vals={'student_id': student_seleccionado.id, 'school_id': school.id, 'month': str(today.month), 'year': str(today.year)}
+            for student_seleccionado in self.env['res.partner'].search([('active_school_id', '=', school.id), ('x_ise_estado', '=', 'usuario'), ('parent_id', '!=', False)]):
+                vals={'student_id': student_seleccionado.id, 'school_id': school.id, 'month': str(today.month), 'year': str(today.year), 'start_date': first_day.strftime('%Y-%m-%d')}
                 if student_seleccionado.y_ise_s:
                     self.create(vals)
 
@@ -93,14 +95,13 @@ class scat_student(models.Model):
                             dias += [FR]
 
                     date_list = list(rrule(WEEKLY, dtstart=first_day, until=last_date, byweekday=dias))
-
                     days=set(date_list)-dias_festivos
-
+                    new_vals = dict(vals)
                     for day in days:
-                        vals['dia'+str(day.day)]=True
+                        new_vals['dia'+str(day.day)]=True
 
 
-                    self.create(vals)
+                    self.create(new_vals)
 
 
 
