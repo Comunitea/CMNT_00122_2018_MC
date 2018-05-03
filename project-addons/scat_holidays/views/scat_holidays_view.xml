@@ -19,13 +19,14 @@
             <field name="model">scat.holidays</field>
             <field name="arch" type="xml">
                 <form string="Vacaciones">
-                    <group>
-                    <field name="start_date"/>
-                    <field name="end_date"/>
-                    <field name="school_ids"/>
-                    <field name="description"/>
-                    </group>
-
+                    <sheet>
+                        <group>
+                        <field name="description"/>
+                        <field name="start_date"/>
+                        <field name="end_date"/>
+                        <field name="school_ids"/>
+                        </group>
+                    </sheet>
                 </form>
             </field>
     </record>

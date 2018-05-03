@@ -5,10 +5,11 @@ from odoo import fields, models
 class scat_holidays(models.Model):
 
     _name = "scat.holidays"
+    _rec_name = "description"
 
     start_date = fields.Date(string="Fecha inicio", required=True)
     end_date = fields.Date(string="Fecha fin", required=True)
-    description = fields.Text(string="Descripción")
+    description = fields.Text(string="Descripción", required=True)
     school_ids = fields.Many2many(
         comodel_name='scat.school',
         relation='scat_holidays_scat_school_rel',
