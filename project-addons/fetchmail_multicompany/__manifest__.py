@@ -13,6 +13,7 @@ Multi company rules for fetchmail module
     """,
     'website': 'https://comunitea.com',
     'data': ['security/fetchmail_security.xml',
-             'views/fetchmail_view.xml'],
+             'views/fetchmail_view.xml',
+             'views/ir_mail_server_view.xml'],
     'installable': True,
 }
