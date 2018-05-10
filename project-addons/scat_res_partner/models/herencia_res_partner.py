@@ -7,7 +7,7 @@ class ResPartner(models.Model):
 
     _inherit = "res.partner"
     x_ise_nie = fields.Char(string='NIE', required=False, help="Identificador del alumno")
-    x_ise_estado = fields.Selection([('admitido','Admitido'),('baja_ise','Baja ise'),('solicitud','Solicitud'),('usuario','Usuario'),('indefinido','Indefinido')], 'Estado')
+    x_ise_estado = fields.Selection([('admitido','Admitido'),('baja_ise','Baja ise'),('solicitud','Solicitud'),('usuario','Usuario'),('indefinido','Indefinido'),('titular','Titular')], 'Estado')
     x_ise_centro = fields.Char(string='Centro', required=False)
 
     y_ise_factura_aut = fields.Boolean(string='Semana completa', required=False)
@@ -18,6 +18,7 @@ class ResPartner(models.Model):
     y_ise_j = fields.Boolean(string='Jueves', required=False)
     y_ise_v = fields.Boolean(string='Viernes', required=False)
     y_ise_s = fields.Boolean(string='Esporádico', required=False)
+
 
 
 

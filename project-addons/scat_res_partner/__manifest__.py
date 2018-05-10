@@ -28,7 +28,7 @@
     'license': 'AGPL-3',
     'category': 'account.payment',
     'summary': 'Ejemplo de un módulo by FalconSolutions.',
-    'depends': ['account','account_accountant', 'scat_student'],
+    'depends': ['account','account_accountant'],
     'description': """
 Modulo basado en FalconSolutions
 =====================================================
