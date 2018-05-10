@@ -514,7 +514,7 @@ log_line_prefix = '%m %p %q<%u@%d> '            # special values:
 #custom_variable_classes = ''        # list of custom variable class names
 #TUNE
 shared_buffers = 1536MB
-effective_cache_size = 3.5GB
+effective_cache_size = 3GB
 work_mem = 15728kB
 maintenance_work_mem = 300MB
 min_wal_size = 2GB
