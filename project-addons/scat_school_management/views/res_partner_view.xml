@@ -2,7 +2,7 @@
 <odoo>
 
     <record id="action_view_calendar" model="ir.actions.act_window">
-        <field name="res_model">res.partner</field>
+        <field name="res_model">scat.student</field>
         <field name="view_type">form</field>
         <field name="name">Calendarios</field>
         <field name="view_mode">tree,form</field>

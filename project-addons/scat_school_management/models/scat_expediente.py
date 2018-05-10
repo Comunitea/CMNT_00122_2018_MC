@@ -11,3 +11,5 @@ class scat_expediente(models.Model):
     start_date = fields.Date(string="Fecha inicio", required=True)
     end_date = fields.Date(string="Fecha fin")
     school_ids = fields.Many2many('scat.school', string="Colegio/s")
+    company_id = fields.Many2one('res.company', 'Company', required=True,
+                                 default=lambda s: s.env.user.company_id.id)
