@@ -17,7 +17,7 @@
             <field name="model">scat.school</field>
             <field name="arch" type="xml">
                 <tree string="scat_school Type Tree">
-                    <field name="name"/>
+                    <field name="name" string="Nombre"/>
                     <field name="code"/>
                     <field name="notes"/>
                     <field name="state_id"/>
@@ -30,7 +30,7 @@
             <field name="model">scat.school</field>
             <field name="arch" type="xml">
                 <search>
-                    <field name="name"/>
+                    <field name="name" string="Nombre"/>
                     <field name="partner_id"/>
                     <field name="code"/>
                     <field name="state_id"/>
@@ -48,7 +48,7 @@
                             <button name="%(action_view_students)d" string="Asistencias" type="action" class="oe_stat_button" icon="fa-calendar-o" help="Muestra alumnos de un colegio"/>
                         </div>
                         <group colspan="4" col="4">
-                        <field name="name"/>
+                        <field name="name" string="Nombre"/>
                         <field name="partner_id"/>
                         <field name="code"/>
                         <field name="notes"/>
