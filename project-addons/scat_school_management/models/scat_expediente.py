@@ -6,7 +6,8 @@ class scat_expediente(models.Model):
 
     _name = "scat.expediente"
 
-    n_expediente = fields.Integer(string="Nº de expediente", required= True)
+    n_expediente = fields.Char(string="Nº de expediente", required= True)
+    n_lote = fields.Char(string="Nº de lote", required= True)
     partner_id= fields.Many2one('res.partner', 'Cliente', required=True)
     start_date = fields.Date(string="Fecha inicio", required=True)
     end_date = fields.Date(string="Fecha fin")
