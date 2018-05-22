@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
-from odoo import fields, models, api
+from odoo import api, fields, models
+
+
 
 
 class ResPartner(models.Model):
@@ -12,16 +14,12 @@ class ResPartner(models.Model):
 
     y_ise_factura_aut = fields.Boolean(string='Semana completa', required=False)
 
-    y_ise_l = fields.Boolean(string='Lunes', required=False)
-    y_ise_m = fields.Boolean(string='Martes', required=False)
-    y_ise_x = fields.Boolean(string='Miércoles', required=False)
-    y_ise_j = fields.Boolean(string='Jueves', required=False)
-    y_ise_v = fields.Boolean(string='Viernes', required=False)
-    y_ise_s = fields.Boolean(string='Esporádico', required=False)
-
-
-
-
+    y_ise_l = fields.Boolean(string='Lunes', required=False, track_visibility='onchange')
+    y_ise_m = fields.Boolean(string='Martes', required=False, track_visibility='onchange')
+    y_ise_x = fields.Boolean(string='Miércoles', required=False, track_visibility='onchange')
+    y_ise_j = fields.Boolean(string='Jueves', required=False, track_visibility='onchange')
+    y_ise_v = fields.Boolean(string='Viernes', required=False, track_visibility='onchange')
+    y_ise_s = fields.Boolean(string='Esporádico', required=False, track_visibility='onchange')
 
     @api.onchange('y_ise_factura_aut')
     def _days_checked(self):

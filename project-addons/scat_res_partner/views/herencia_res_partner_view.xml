@@ -11,19 +11,18 @@
         <field name="arch" type="xml">
 
 
-
         <field name="lang" position="after" >
 
-          <field name="x_ise_nie" />
-          <field name="x_ise_estado"/>
-          <field name="x_ise_centro"/>
-          <field name="y_ise_factura_aut"/>
-          <field name="y_ise_l" attrs="{'invisible':[('y_ise_factura_aut','=', True)]}"/>
-          <field name="y_ise_m" attrs="{'invisible':[('y_ise_factura_aut','=', True)]}"/>
-          <field name="y_ise_x" attrs="{'invisible':[('y_ise_factura_aut','=', True)]}"/>
-          <field name="y_ise_j" attrs="{'invisible':[('y_ise_factura_aut','=', True)]}"/>
-          <field name="y_ise_v" attrs="{'invisible':[('y_ise_factura_aut','=', True)]}"/>
-          <field name="y_ise_s" attrs="{'invisible':[('y_ise_factura_aut','=', True)]}"/>
+            <field name="x_ise_nie" />
+            <field name="x_ise_estado"/>
+            <field name="x_ise_centro"/>
+            <field name="y_ise_factura_aut"/>
+            <field name="y_ise_l" attrs="{'invisible':[('y_ise_factura_aut','=', True)]}"/>
+            <field name="y_ise_m" attrs="{'invisible':[('y_ise_factura_aut','=', True)]}"/>
+            <field name="y_ise_x" attrs="{'invisible':[('y_ise_factura_aut','=', True)]}"/>
+            <field name="y_ise_j" attrs="{'invisible':[('y_ise_factura_aut','=', True)]}"/>
+            <field name="y_ise_v" attrs="{'invisible':[('y_ise_factura_aut','=', True)]}"/>
+            <field name="y_ise_s" attrs="{'invisible':[('y_ise_factura_aut','=', True)]}"/>
         </field>
         </field>
     </record>

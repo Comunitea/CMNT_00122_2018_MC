@@ -12,5 +12,7 @@
 "scat_holidays_user","scat_holidays user","model_scat_holidays","group_scat_school_management_user",1,0,0,0
 "scat_expediente_manager","scat_expediente manager","model_scat_expediente","group_scat_school_management_manager",1,1,1,1
 "scat_expediente_user","scat_expediente user","model_scat_expediente","group_scat_school_management_user",1,0,0,0
+"scat_expediente_product_manager","scat_expediente_product manager","model_scat_expediente_product","group_scat_school_management_manager",1,1,1,1
+"scat_expediente_product_user","scat_expediente_product user","model_scat_expediente_product","group_scat_school_management_user",1,0,0,0
 "scat_course_manager","scat_course manager","model_scat_course","group_scat_school_management_manager",1,1,1,1
 "scat_course_user","scat_course user","model_scat_course","group_scat_school_management_user",1,0,0,0
