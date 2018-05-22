@@ -2,7 +2,7 @@
 from odoo import api, fields, models
 from dateutil.rrule import MO, TU, WE, TH, FR, SA, SU, rrule, WEEKLY
 from datetime import datetime
-from datetime import date, timedelta
+from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 import calendar
 
@@ -144,7 +144,11 @@ class scat_student(models.Model):
             registro.total_child=contadorF+contadorA
 
 
-
+    _sql_constraints = [
+    ('calendar_unique',
+     'UNIQUE(month, year, student_id)',
+     "Ya hay un registro para ese alumno"),
+    ]
 
     @api.model
     def get_next_month(self):
@@ -162,6 +166,13 @@ class scat_student(models.Model):
                 "D":self.get_state_code("D"),
                 "H":self.get_state_code("H")}
 
+        student_ticado=[]
+        ticados=self.env['scat.student'].search([('month','=', str(today.month)),('year','=', str(today.year))])
+        students=ticados.mapped('student_id')
+        print ticados
+        print students
+
+
         for school in self.env['scat.school'].search([]):
 
 
@@ -169,46 +180,86 @@ class scat_student(models.Model):
 
             for student_seleccionado in self.env['res.partner'].search([('active_school_id', '=', school.id), ('x_ise_estado', '=', 'usuario'), ('parent_id', '!=', False),
             '|','|','|','|','|','|', ('y_ise_factura_aut','=',True),('y_ise_l','=',True),('y_ise_m','=',True),('y_ise_x','=',True),
-            ('y_ise_j','=',True),('y_ise_v','=',True),('y_ise_s','=',True)]):
+            ('y_ise_j','=',True),('y_ise_v','=',True),('y_ise_s','=',True),('id','not in',students.ids)]):
                 vals={'student_id': student_seleccionado.id, 'school_id': school.id, 'month': str(today.month), 'year': str(today.year), 'start_date': first_day.strftime('%Y-%m-%d')}
-                if student_seleccionado.y_ise_s:
-                    self.create(vals)
+                self.control_presencia(student_seleccionado, school, first_day, last_day, today, last_date, dias_festivos, vals, codes)
 
-                else:
-                    if student_seleccionado.y_ise_factura_aut:
-                        dias = [MO, TU, WE, TH, FR]
-                    else:
-                        dias = []
-                        if student_seleccionado.y_ise_l:
-                            dias += [MO]
-                        if student_seleccionado.y_ise_m:
-                            dias += [TU]
-                        if student_seleccionado.y_ise_x:
-                            dias += [WE]
-                        if student_seleccionado.y_ise_j:
-                            dias += [TH]
-                        if student_seleccionado.y_ise_v:
-                            dias += [FR]
+    def control_presencia(self, student_seleccionado, school, first_day, last_day, today, last_date, dias_festivos, vals, codes):
+        if student_seleccionado.y_ise_s:
+            self.create(vals)
 
-                    date_list = list(rrule(WEEKLY, dtstart=first_day, until=last_date, byweekday=dias))
-                    lista_sabados = list(rrule(WEEKLY, dtstart=first_day, until=last_date, byweekday=SA))
-                    lista_domingos = list(rrule(WEEKLY, dtstart=first_day, until=last_date, byweekday=SU))
-                    days=set(date_list)-dias_festivos
-                    new_vals = dict(vals)
+        else:
+            if student_seleccionado.y_ise_factura_aut:
+                dias = [MO, TU, WE, TH, FR]
+            else:
+                dias = []
+                if student_seleccionado.y_ise_l:
+                    dias += [MO]
+                if student_seleccionado.y_ise_m:
+                    dias += [TU]
+                if student_seleccionado.y_ise_x:
+                    dias += [WE]
+                if student_seleccionado.y_ise_j:
+                    dias += [TH]
+                if student_seleccionado.y_ise_v:
+                    dias += [FR]
 
-                    for day in dias_festivos:
-                        new_vals['dia'+str(day.day)]=codes["H"]
+            date_list = list(rrule(WEEKLY, dtstart=first_day, until=last_date, byweekday=dias))
+            lista_sabados = list(rrule(WEEKLY, dtstart=first_day, until=last_date, byweekday=SA))
+            lista_domingos = list(rrule(WEEKLY, dtstart=first_day, until=last_date, byweekday=SU))
+            days=set(date_list)-dias_festivos
+            new_vals = dict(vals)
 
-                    for day in lista_sabados:
-                        new_vals['dia'+str(day.day)]=codes["S"]
+            for day in dias_festivos:
+                new_vals['dia'+str(day.day)]=codes["H"]
 
-                    for day in lista_domingos:
-                        new_vals['dia'+str(day.day)]=codes["D"]
+            for day in lista_sabados:
+                new_vals['dia'+str(day.day)]=codes["S"]
 
-                    for day in days:
-                        new_vals['dia'+str(day.day)]=codes["A"]
+            for day in lista_domingos:
+                new_vals['dia'+str(day.day)]=codes["D"]
 
-                    self.create(new_vals)
+            for day in days:
+                new_vals['dia'+str(day.day)]=codes["A"]
+
+            self.create(new_vals)
+
+            #Funcion para cabecera de factura
+
+            #crear_cabecera_factura(student_seleccionado)
+
+            #Funcion para lineas de factura
+
+            #crear_lineas_factura(student_seleccionado, total_ise, total_child)
+
+
+    #def crear_cabecera_factura(self, student_seleccionado):
+
+        #self.ensure_one()
+        #res = {}
+        #res = {
+            #'name': self.name,
+            #'sequence': self.sequence,
+            #'origin': self.order_id.name,
+            #'account_id': account.id,
+            #'price_unit': self.price_unit,
+            #'quantity': qty,
+            #'discount': self.discount,
+            #'uom_id': self.product_uom.id,
+            #'product_id': self.product_id.id or False,
+            #'layout_category_id': self.layout_category_id and self.layout_category_id.id or False,
+            #'invoice_line_tax_ids': [(6, 0, self.tax_id.ids)],
+            #'account_analytic_id': self.order_id.project_id.id,
+            #'analytic_tag_ids': [(6, 0, self.analytic_tag_ids.ids)],
+        #}
+        #return res
+
+
+    #def crear_lineas_factura(self, student_seleccionado, total_ise, total_child):
+        #self.ensure_one()
+        #res = {}
+
+
 
 
 
@@ -218,7 +269,7 @@ class scat_student(models.Model):
         return self.env.ref("scat_school_management.code_"+code.lower()).id
 
 
-    def dias_festivos(self, first_day, last_date,school):
+    def dias_festivos(self, first_day, last_date, school):
 
         domain=[('school_ids', 'in', [school.id]),('end_date', '>=', first_day.strftime('%Y-%m-%d')),('start_date','<=',last_date.strftime('%Y-%m-%d'))]
 
@@ -244,6 +295,5 @@ class scat_student(models.Model):
 
 
         return lista_festivos
-
 
 

@@ -35,6 +35,7 @@
              'data/scat_student_holidays.xml',
              'views/scat_school_management_view.xml',
              'views/scat_student_view.xml',
+             'views/scat_expediente_product_view.xml',
              'views/scat_expediente_view.xml',
              'views/scat_holidays_view.xml',
              'views/scat_school_view.xml',

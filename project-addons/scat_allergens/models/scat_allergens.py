@@ -11,3 +11,4 @@ class scat_allergens(models.Model):
 
     allergens = fields.Char(string='Alérgenos', required=True, index=True)
     refinterna = fields.Char(string='Referencia Interna', required=False)
+

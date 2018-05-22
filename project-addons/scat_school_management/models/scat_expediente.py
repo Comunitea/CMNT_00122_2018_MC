@@ -13,3 +13,8 @@ class scat_expediente(models.Model):
     school_ids = fields.Many2many('scat.school', string="Colegio/s")
     company_id = fields.Many2one('res.company', 'Company', required=True,
                                  default=lambda s: s.env.user.company_id.id)
+
+    journal_kids_id = fields.Many2one("account.journal", "Diario Niños", domain=[("type","=", "sale")])
+    journal_ise_id = fields.Many2one("account.journal", "Diario Ise", domain=[("type","=", "sale")])
+
+    product_ids = fields.One2many('scat.expediente.product', 'expediente_id', string ="Productos")

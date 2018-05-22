@@ -51,6 +51,7 @@
     </record>
 
 
+
     <!-- Menus pricinpal y secundarios -->
     <menuitem id="main_scat_school_management" name="Gestión de colegios"/>
 
@@ -60,13 +61,12 @@
 
     <menuitem id="scat_student_menu" name="Control de presencia" action="scat_student_list_action" parent="main_scat_school_management" sequence="2"/>
 
-    <menuitem id="m_configuration" name="Configuration" parent="main_scat_school_management" sequence="10"/>
+    <menuitem id="m_configuration" name="Configuración" parent="main_scat_school_management" sequence="10"/>
 
     <menuitem id="submenu_scat_expediente" name="Expediente" action="scat_expediente" parent="m_configuration" sequence="1"/>
 
     <menuitem id="submenu_scat_holidays" name="Vacaciones" action="scat_holidays" parent="m_configuration" sequence="2"/>
 
     <menuitem id="submenu_scat_course" name="Cursos" action="scat_course" parent="m_configuration" sequence="3"/>
-
 
 </odoo>
