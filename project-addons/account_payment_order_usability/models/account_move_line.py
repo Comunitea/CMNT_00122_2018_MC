@@ -13,6 +13,6 @@ class AccountMoveLine(models.Model):
     def _prepare_payment_line_vals(self, payment_order):
         vals = super(AccountMoveLine, self).\
             _prepare_payment_line_vals(payment_order)
-        if self.name:
+        if self.name and self.name != '/':
             vals['communication'] = vals['communication'] + u" / " + self.name
         return vals
