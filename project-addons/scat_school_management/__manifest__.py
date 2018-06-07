@@ -33,6 +33,8 @@
     'data': ['data/scat_student_holidays.xml',
              'data/scat_student_state.xml',
              'data/scat_student_holidays.xml',
+             'wizard/scat_expedient_school_wzd_view.xml',
+             'wizard/scat_student_control_presencia_wzd_view.xml',
              'views/scat_school_management_view.xml',
              'views/scat_student_view.xml',
              'views/scat_expediente_product_view.xml',

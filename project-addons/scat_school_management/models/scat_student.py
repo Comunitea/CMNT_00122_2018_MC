@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models
+from odoo.exceptions import ValidationError , UserError
 from dateutil.rrule import MO, TU, WE, TH, FR, SA, SU, rrule, WEEKLY
 from datetime import datetime
 from datetime import timedelta
@@ -19,7 +20,26 @@ class scat_student(models.Model):
     month = fields.Char(string="Mes", required=True)
 
     year = fields.Char(string="Año", required=True)
-    start_date = fields.Date(readonly=True)
+    start_date = fields.Date(readonly=False)
+
+    expedient_id=fields.Many2one('scat.expediente', string = "Expediente", required=True)
+
+
+    @api.onchange('student_id')
+    def onchange_student_id(self):
+        if self.student_id:
+            self.school_id=self.student_id.active_school_id.id
+
+    @api.onchange('school_id')
+    def onchange_school_id(self):
+        if self.school_id:
+            expedientes=self.school_id.expedient_ids.filtered(lambda r:r.state == 'open')
+            if expedientes:
+                self.expedient_id=expedientes[0].id
+            else:
+                res={"warning":{"title":"Error", "message":"El colegio %s no tiene expediete abierto" % self.school_id.name}}
+                self.school_id=False
+                return res
 
     @api.model
     def _get_default_day(self):
@@ -119,8 +139,9 @@ class scat_student(models.Model):
     dia31 = fields.Many2one("scat.student.state",string="Día 31", default=_get_default_day, required=True)
     dia31_code=fields.Char(related="dia31.code", readonly=True)
 
-    total_ise=fields.Integer("Total ise", compute="_contador_asiste")
-    total_child=fields.Integer("Total niño", compute="_contador_asiste")
+    total_ise=fields.Integer("Total ise", compute="_contador_asiste", store=True)
+    total_child=fields.Integer("Total niño", compute="_contador_asiste", store=True)
+    invoice_id = fields.Many2one('account.invoice', 'Factura')
 
     @api.depends('dia1','dia2','dia3','dia4','dia5','dia6','dia7','dia8','dia9','dia10','dia11','dia12','dia13','dia14','dia15',
                  'dia16','dia17','dia18','dia19','dia20','dia21','dia22','dia23','dia24','dia25','dia26','dia27','dia28','dia29','dia30','dia31')
@@ -146,7 +167,7 @@ class scat_student(models.Model):
 
     _sql_constraints = [
     ('calendar_unique',
-     'UNIQUE(month, year, student_id)',
+     'UNIQUE(month, year, student_id, school_id)',
      "Ya hay un registro para ese alumno"),
     ]
 
@@ -169,22 +190,52 @@ class scat_student(models.Model):
         student_ticado=[]
         ticados=self.env['scat.student'].search([('month','=', str(today.month)),('year','=', str(today.year))])
         students=ticados.mapped('student_id')
-        print ticados
-        print students
 
+        for expediente in self.env['scat.expediente'].search([('state','=','open')]):
+            if not expediente:
+                raise ValidationError("No hay expediente abierto")
+            if not expediente.journal_kids_id:
+                raise ValidationError("No hay diario para ese cliente")
+            expedient_lines = expediente.get_invoice_lines()
+            ise_lines = {}
 
-        for school in self.env['scat.school'].search([]):
+            school_list=expediente.school_ids
 
+            for school in school_list:
+                ise_lines[school.id] = {}
+                dias_festivos=self.dias_festivos(first_day, last_date,school)
 
-            dias_festivos=self.dias_festivos(first_day, last_date,school)
+                for student_seleccionado in self.env['res.partner'].search([('active_school_id', '=', school.id), ('x_ise_estado', '=', 'usuario'), ('parent_id', '!=', False),
+                '|','|','|','|','|','|', ('y_ise_factura_aut','=',True),('y_ise_l','=',True),('y_ise_m','=',True),('y_ise_x','=',True),
+                ('y_ise_j','=',True),('y_ise_v','=',True),('y_ise_s','=',True),('id','not in',students.ids)]):
+                    vals={'student_id': student_seleccionado.id, 'school_id': school.id, 'month': str(today.month), 'year': str(today.year), 'start_date': first_day.strftime('%Y-%m-%d'), 'expedient_id': expediente.id}
+                    self.control_presencia(student_seleccionado, school, first_day, last_day, today, last_date, dias_festivos, vals, codes, expedient_lines, ise_lines)
+            partner = self.env['res.partner'].with_context(force_company = expediente.company_id.id).browse(expediente.partner_id.id)
+            invoice = self.env['scat.student'].crear_cabecera_factura(partner, journal = expediente.journal_ise_id, expedient = expediente, t='x')
+            for school in ise_lines:
+                school_id = self.env['scat.school'].browse(int(school))
+                for product in ise_lines[school]:
+                    product = self.env['product.product'].with_context(force_company = self.expedient_id.company_id.id).\
+                        browse(int(product))
+                    if product.property_account_income_id:
+                        account = product.property_account_income_id.id
+                    elif product.categ_id.property_account_income_categ_id:
+                        account = product.categ_id.property_account_income_categ_id.id
+                    else:
+                        raise UserError("No se ha encontrado una cuenta de ingreso para el producto %s" % product.name)
+                    self.env['account.invoice.line'].create({'product_id': product.id,
+                                'price_unit': ise_lines[school][product.id],
+                                'name': product.name,
+                                'invoice_line_tax_ids': [(6,0,product.taxes_id.ids)],
+                                'account_id': account,
+                                'uom_id': product.uom_id.id,
+                                'quantity': 1,
+                                'invoice_id': invoice.id,
+                                'account_analytic_id': school_id.school_id.analytic_account_id.id})
+            invoice.compute_taxes()
 
-            for student_seleccionado in self.env['res.partner'].search([('active_school_id', '=', school.id), ('x_ise_estado', '=', 'usuario'), ('parent_id', '!=', False),
-            '|','|','|','|','|','|', ('y_ise_factura_aut','=',True),('y_ise_l','=',True),('y_ise_m','=',True),('y_ise_x','=',True),
-            ('y_ise_j','=',True),('y_ise_v','=',True),('y_ise_s','=',True),('id','not in',students.ids)]):
-                vals={'student_id': student_seleccionado.id, 'school_id': school.id, 'month': str(today.month), 'year': str(today.year), 'start_date': first_day.strftime('%Y-%m-%d')}
-                self.control_presencia(student_seleccionado, school, first_day, last_day, today, last_date, dias_festivos, vals, codes)
-
-    def control_presencia(self, student_seleccionado, school, first_day, last_day, today, last_date, dias_festivos, vals, codes):
+    def control_presencia(self, student_seleccionado, school, first_day, last_day, today, last_date, dias_festivos, vals, codes, expedient_lines, ise_lines):
+        total_ise = 0
         if student_seleccionado.y_ise_s:
             self.create(vals)
 
@@ -222,47 +273,46 @@ class scat_student(models.Model):
             for day in days:
                 new_vals['dia'+str(day.day)]=codes["A"]
 
-            self.create(new_vals)
+            ticado= self.create(new_vals)
 
             #Funcion para cabecera de factura
+            partner=self.env['res.partner'].with_context(force_company=ticado.expedient_id.company_id.id).browse(ticado.student_id.commercial_partner_id.id)
+            invoice = ticado.crear_cabecera_factura(partner)
+            for line in expedient_lines:
+                discount = partner.property_product_pricelist.item_ids[0].percent_price
+                l = {'invoice_id': invoice.id,
+                     'quantity': ticado.total_child,
+                     'discount': discount,
+                     'account_analytic_id': school.school_id.analytic_account_id.id}
+                l.update(line)
+                self.env['account.invoice.line'].create(l)
+                ise_price = ticado.total_ise * line['price_unit'] * (discount/100)
+                if ise_lines[ticado.school_id.id].get(line['product_id']):
+                    ise_lines[ticado.school_id.id][line['product_id']] += ise_price
+                else:
+                    ise_lines[ticado.school_id.id][line['product_id']] = ise_price
+            ticado.invoice_id = invoice.id
+            invoice.compute_taxes()
 
-            #crear_cabecera_factura(student_seleccionado)
+    def crear_cabecera_factura(self, partner, journal=False, expedient=False, t='child'):
+        if not expedient:
+            expedient = self.expedient_id
+        if not journal:
+            journal = expedient.journal_kids_id
 
-            #Funcion para lineas de factura
+        res = {
+            'name': t == 'child' and u'Niño/a: ' + self.student_id.name + u', mes: ' +self.month+ u' año: '+self.year or expedient.n_expediente,
+            'journal_id': journal.id,
+            'company_id': expedient.company_id.id,
+            'account_id': partner.property_account_receivable_id.id,
+            'partner_id' : t == 'child' and self.student_id.id or partner.id,
+            'payment_term_id': partner.property_payment_term_id.id,
+            'payment_mode_id': partner.customer_payment_mode_id.id,
+            'fiscal_position_id': partner.property_account_position_id.id
+        }
+        invoice = self.env['account.invoice'].create(res)
 
-            #crear_lineas_factura(student_seleccionado, total_ise, total_child)
-
-
-    #def crear_cabecera_factura(self, student_seleccionado):
-
-        #self.ensure_one()
-        #res = {}
-        #res = {
-            #'name': self.name,
-            #'sequence': self.sequence,
-            #'origin': self.order_id.name,
-            #'account_id': account.id,
-            #'price_unit': self.price_unit,
-            #'quantity': qty,
-            #'discount': self.discount,
-            #'uom_id': self.product_uom.id,
-            #'product_id': self.product_id.id or False,
-            #'layout_category_id': self.layout_category_id and self.layout_category_id.id or False,
-            #'invoice_line_tax_ids': [(6, 0, self.tax_id.ids)],
-            #'account_analytic_id': self.order_id.project_id.id,
-            #'analytic_tag_ids': [(6, 0, self.analytic_tag_ids.ids)],
-        #}
-        #return res
-
-
-    #def crear_lineas_factura(self, student_seleccionado, total_ise, total_child):
-        #self.ensure_one()
-        #res = {}
-
-
-
-
-
+        return invoice
 
     def get_state_code(self, code):
 
@@ -272,7 +322,6 @@ class scat_student(models.Model):
     def dias_festivos(self, first_day, last_date, school):
 
         domain=[('school_ids', 'in', [school.id]),('end_date', '>=', first_day.strftime('%Y-%m-%d')),('start_date','<=',last_date.strftime('%Y-%m-%d'))]
-
 
         lista_festivos=set()
 
@@ -290,7 +339,7 @@ class scat_student(models.Model):
 
             lista_fechas = [start_date + timedelta(days=d) for d in range((end_date - start_date).days + 1)]
 
-            lista_festivos |= set(lista_fechas)
+            lista_festivos = set(lista_fechas)
 
 
 
