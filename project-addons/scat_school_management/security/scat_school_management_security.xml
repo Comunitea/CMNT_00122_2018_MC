@@ -6,8 +6,8 @@
         <field name="model_id" ref="model_scat_student"/>
         <field name="global" eval="True"/>
         <field name="domain_force">['|',
-                                        ('school_id.school_id.company_id', '=', False),
-                                        ('school_id.school_id.company_id', 'child_of', [user.company_id.id]),
+                                        ('expedient_id.company_id', '=', False),
+                                        ('expediente_id.company_id', 'child_of', [user.company_id.id]),
                                     ]</field>
     </record>
 
