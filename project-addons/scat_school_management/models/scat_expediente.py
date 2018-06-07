@@ -14,6 +14,7 @@ class scat_expediente(models.Model):
     school_ids = fields.Many2many('scat.school', relation='scat_expediente_scat_school_rel',
         column2='scat_school_id', column1='scat_expediente_id', string="Colegio/s", readonly=True, states={'borrador': [('readonly', False)]})
     state= fields.Selection([ ("borrador", "Borrador"),("open","Abierto"),("close", "Cerrado")], "Estado", default="borrador", readonly=True)
+
     company_id = fields.Many2one('res.company', 'Company', required=True,
                                  default=lambda s: s.env.user.company_id.id, readonly=True, states={'borrador': [('readonly', False)]})
 
