@@ -6,23 +6,31 @@ from odoo.exceptions import UserError
 class scat_expediente(models.Model):
 
     _name = "scat.expediente"
+    _rec_name = "display_name"
 
-    n_lote = fields.Char(string="Nº de lote", required=True, readonly=True, states={'borrador': [('readonly', False)]})
-    n_expediente = fields.Integer(string="Nº de expediente", required= True, readonly=True, states={'borrador': [('readonly', False)]})
+    n_expediente = fields.Char("Nº de expediente", required=True, readonly=True, states={'borrador': [('readonly', False)]})
+    n_lote = fields.Char(string="Nº de lote", required= True, readonly=True, states={'borrador': [('readonly', False)]})
+    display_name = fields.Char("Referencia", compute="_get_display_name")
     partner_id= fields.Many2one('res.partner', 'Cliente', required=True, readonly=True, states={'borrador': [('readonly', False)]})
     start_date = fields.Date(string="Fecha inicio", required=True, readonly=True, states={'borrador': [('readonly', False)]})
     end_date = fields.Date("Fecha de fin", readonly=True, states={'borrador': [('readonly', False)]})
     school_ids = fields.Many2many('scat.school', relation='scat_expediente_scat_school_rel',
         column2='scat_school_id', column1='scat_expediente_id', string="Colegio/s", readonly=True, states={'borrador': [('readonly', False)]})
     state= fields.Selection([ ("borrador", "Borrador"),("open","Abierto"),("close", "Cerrado")], "Estado", default="borrador", readonly=True)
-    company_id = fields.Many2one('res.company', 'Company', required=True,
+    company_id = fields.Many2one('res.company', 'Compañía', required=True,
                                  default=lambda s: s.env.user.company_id.id, readonly=True, states={'borrador': [('readonly', False)]})
 
-    journal_kids_id = fields.Many2one("account.journal", "Diario Niños", domain=[("type","=", "sale")])
-    journal_ise_id = fields.Many2one("account.journal", "Diario Ise", domain=[("type","=", "sale")])
+    journal_kids_id = fields.Many2one("account.journal", "Diario Niños", domain=[("type","=", "sale")], required=True)
+    journal_ise_id = fields.Many2one("account.journal", "Diario Ise", domain=[("type","=", "sale")], required=True)
 
     product_ids = fields.One2many('scat.expediente.product', 'expediente_id', string ="Productos")
 
+
+    @api.multi
+    def _get_display_name(self):
+        for expedient in self:
+            expedient.display_name = expedient.n_expediente + u"/" + \
+                expedient.n_lote
 
     @api.multi
     def get_invoice_lines(self):
@@ -56,4 +64,4 @@ class scat_expediente(models.Model):
 
                 expedientes= self.search([('id', '!=', exp.id),('school_ids', 'in', [school.id]), ('state', '=', 'open')])
                 if expedientes:
-                    raise UserError("No se ha podido abrir el expediente porque el colegio %s se escuentra en otro expediente abierto %s" %(school.name, expedientes[0].n_expediente) )
+                    raise UserError("No se ha podido abrir el expediente porque el colegio %s se escuentra en otro expediente abierto %s" %(school.name, expedientes[0].display_name) )
