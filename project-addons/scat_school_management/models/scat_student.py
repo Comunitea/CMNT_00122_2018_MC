@@ -215,7 +215,7 @@ class scat_student(models.Model):
             for school in ise_lines:
                 school_id = self.env['scat.school'].browse(int(school))
                 for product in ise_lines[school]:
-                    product = self.env['product.product'].with_context(force_company = self.expedient_id.company_id.id).\
+                    product = self.env['product.product'].with_context(force_company = expediente.company_id.id).\
                         browse(int(product))
                     if product.property_account_income_id:
                         account = product.property_account_income_id.id
@@ -226,7 +226,7 @@ class scat_student(models.Model):
                     self.env['account.invoice.line'].create({'product_id': product.id,
                                 'price_unit': ise_lines[school][product.id],
                                 'name': product.name,
-                                'invoice_line_tax_ids': [(6,0,product.taxes_id.ids)],
+                                'invoice_line_tax_ids': [(6,0,product.taxes_id.filtered(lambda x: x.company_id==expediente.company_id).ids)],
                                 'account_id': account,
                                 'uom_id': product.uom_id.id,
                                 'quantity': 1,
