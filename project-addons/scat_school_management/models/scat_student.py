@@ -301,7 +301,7 @@ class scat_student(models.Model):
             journal = expedient.journal_kids_id
 
         res = {
-            'name': t == 'child' and u'Niño/a: ' + self.student_id.name + u', mes: ' +self.month+ u' año: '+self.year or expedient.n_expediente,
+            'name': t == 'child' and u'Niño/a: ' + self.student_id.name + u', mes: ' +self.month+ u' año: '+self.year or expedient.display_name,
             'journal_id': journal.id,
             'company_id': expedient.company_id.id,
             'account_id': partner.property_account_receivable_id.id,

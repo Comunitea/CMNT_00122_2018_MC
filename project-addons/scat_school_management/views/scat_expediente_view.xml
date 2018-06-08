@@ -48,7 +48,6 @@
                         <field name="company_id" groups="base.group_multi_company"/>
                         <field name="start_date"/>
                         <field name="end_date" readonly="True"/>
-                        <field name="company_id" groups="base.group_multi_company"/>
                         <field name="journal_kids_id"/>
                         <field name="journal_ise_id"/>
                         <notebook colspan="4">

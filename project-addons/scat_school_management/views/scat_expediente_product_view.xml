@@ -5,11 +5,10 @@
             <field name="name">scat.expediente.product.tree</field>
             <field name="model">scat.expediente.product</field>
             <field name="arch" type="xml">
-                <tree string="Expediente">
+                <tree string="Expediente" editable="top">
                     <field name="product_id"/>
                     <field name="price_u"/>
-                    <field name="impuestos_ids"/>
-                    <field name="expediente_id"/>
+                    <field name="impuestos_ids" widget="many2many_tags"/>
                 </tree>
             </field>
     </record>
@@ -23,7 +22,6 @@
                     <field name="product_id"/>
                     <field name="price_u"/>
                     <field name="impuestos_ids"/>
-                    <field name="expediente_id"/>
                     </group>
                 </form>
             </field>
