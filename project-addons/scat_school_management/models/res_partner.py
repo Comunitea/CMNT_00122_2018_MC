@@ -50,9 +50,13 @@ class ResPartner(models.Model):
         else:
             expediente=expedientes[0]
 
+        expedient_lines = expediente.get_invoice_lines()
+        ise_lines = {}
+        ise_lines[school.id] = {}
+
         student_seleccionado = student
         vals={'student_id': student_seleccionado.id, 'school_id': school.id, 'month': str(today.month), 'year': str(today.year), 'start_date': first_day.strftime('%Y-%m-%d'),  'expedient_id': expediente.id}
-        student.env['scat.student'].control_presencia(student_seleccionado, school, first_day, last_day, today, last_date, dias_festivos, vals, codes)
+        student.env['scat.student'].control_presencia(student_seleccionado, school, first_day, last_day, today, last_date, dias_festivos, vals, codes, expedient_lines, ise_lines)
         today = today+relativedelta(months=1)
 
         next_month_rec=student.env['scat.student'].search([("month","=",str(today.month)),("year","=",str(today.year))], limit = 1)
