@@ -8,7 +8,7 @@ from dateutil.relativedelta import relativedelta
 import calendar
 
 
-class scat_student(models.Model):
+class ScatStudent(models.Model):
     _name = "scat.student"
     _rec_name ='student_id'
     _order = "start_date desc,school_id"
@@ -141,7 +141,14 @@ class scat_student(models.Model):
 
     total_ise=fields.Integer("Total ise", compute="_contador_asiste", store=True)
     total_child=fields.Integer("Total niño", compute="_contador_asiste", store=True)
+
     invoice_id = fields.Many2one('account.invoice', 'Factura')
+
+    qty_to_invoice_child = fields.Float(compute='_get_qty', string='Cantidad a facturar niño')
+    qty_invoiced_child = fields.Float(compute='_get_qty', string='Cantidad facturada niño')
+
+    qty_to_invoice_ise = fields.Float(compute='_get_qty', string='Cantidad a facturar ise')
+    qty_invoiced_ise = fields.Float(compute='_get_qty', string='Cantidad facturada ise')
 
     @api.depends('dia1','dia2','dia3','dia4','dia5','dia6','dia7','dia8','dia9','dia10','dia11','dia12','dia13','dia14','dia15',
                  'dia16','dia17','dia18','dia19','dia20','dia21','dia22','dia23','dia24','dia25','dia26','dia27','dia28','dia29','dia30','dia31')
@@ -208,12 +215,17 @@ class scat_student(models.Model):
                 for student_seleccionado in self.env['res.partner'].search([('active_school_id', '=', school.id), ('x_ise_estado', '=', 'usuario'), ('parent_id', '!=', False),
                 '|','|','|','|','|','|', ('y_ise_factura_aut','=',True),('y_ise_l','=',True),('y_ise_m','=',True),('y_ise_x','=',True),
                 ('y_ise_j','=',True),('y_ise_v','=',True),('y_ise_s','=',True),('id','not in',students.ids)]):
-                    vals={'student_id': student_seleccionado.id, 'school_id': school.id, 'month': str(today.month), 'year': str(today.year), 'start_date': first_day.strftime('%Y-%m-%d'), 'expedient_id': expediente.id}
+                    vals={'student_id': student_seleccionado.id,
+                        'school_id': school.id,
+                         'month': str(today.month), 'year': str(today.year), 'start_date': first_day.strftime('%Y-%m-%d'), 'expedient_id': expediente.id}
                     self.control_presencia(student_seleccionado, school, first_day, last_day, today, last_date, dias_festivos, vals, codes, expedient_lines, ise_lines)
             partner = self.env['res.partner'].with_context(force_company = expediente.company_id.id).browse(expediente.partner_id.id)
+
+
             invoice = self.env['scat.student'].crear_cabecera_factura(partner, journal = expediente.journal_ise_id, expedient = expediente, t='x')
             for school in ise_lines:
                 school_id = self.env['scat.school'].browse(int(school))
+                total=0
                 for product in ise_lines[school]:
                     product = self.env['product.product'].with_context(force_company = expediente.company_id.id).\
                         browse(int(product))
@@ -230,8 +242,24 @@ class scat_student(models.Model):
                                 'account_id': account,
                                 'uom_id': product.uom_id.id,
                                 'quantity': 1,
+                                'scat_student_id': self.id,
                                 'invoice_id': invoice.id,
                                 'account_analytic_id': school_id.school_id.analytic_account_id.id})
+                    total+=ise_lines[school][product.id]
+
+            vals={'product_id': False,
+                                'price_unit': -total/expediente.discount_ise,
+                                'discount':0,
+                                'discount_line':True,
+                                'name': u'Descuento %s ' %expediente.discount_ise,
+                                'invoice_line_tax_ids': [(6,0,product.taxes_id.filtered(lambda x: x.company_id==expediente.company_id).ids)],
+                                'account_id': account,
+                                'uom_id': product.uom_id.id,
+                                'quantity': 1,
+                                'scat_student_id': self.id,
+                                'invoice_id': invoice.id,
+                                'account_analytic_id': school_id.school_id.analytic_account_id.id}
+            self.env['account.invoice.line'].create(vals)
             invoice.compute_taxes()
 
     def control_presencia(self, student_seleccionado, school, first_day, last_day, today, last_date, dias_festivos, vals, codes, expedient_lines, ise_lines):
@@ -277,24 +305,36 @@ class scat_student(models.Model):
 
             #Funcion para cabecera de factura
             partner=self.env['res.partner'].with_context(force_company=ticado.expedient_id.company_id.id).browse(ticado.student_id.commercial_partner_id.id)
+
+
+
             invoice = ticado.crear_cabecera_factura(partner)
+
             for line in expedient_lines:
                 discount = partner.property_product_pricelist.item_ids[0].percent_price
-                l = {'invoice_id': invoice.id,
-                     'quantity': ticado.total_child,
+                l = {'scat_student_id':ticado.id,
+                     'invoice_id': invoice.id,
+                     'quantity': ticado.qty_to_invoice_child,
                      'discount': discount,
                      'account_analytic_id': school.school_id.analytic_account_id.id}
                 l.update(line)
+
+
+
                 self.env['account.invoice.line'].create(l)
                 ise_price = ticado.total_ise * line['price_unit'] * (discount/100)
                 if ise_lines[ticado.school_id.id].get(line['product_id']):
                     ise_lines[ticado.school_id.id][line['product_id']] += ise_price
                 else:
                     ise_lines[ticado.school_id.id][line['product_id']] = ise_price
-            ticado.invoice_id = invoice.id
+
+            if not ticado.invoice_id:
+                ticado.invoice_id= invoice
             invoice.compute_taxes()
 
-    def crear_cabecera_factura(self, partner, journal=False, expedient=False, t='child'):
+
+
+    def crear_cabecera_factura(self, partner, journal=False, expedient=False, t='child', invoice_type='out_invoice'):
         if not expedient:
             expedient = self.expedient_id
         if not journal:
@@ -302,6 +342,7 @@ class scat_student(models.Model):
 
         res = {
             'name': t == 'child' and u'Niño/a: ' + self.student_id.name + u', mes: ' +self.month+ u' año: '+self.year or expedient.display_name,
+            'ise': t!= 'child',
             'journal_id': journal.id,
             'company_id': expedient.company_id.id,
             'account_id': partner.property_account_receivable_id.id,
@@ -310,6 +351,11 @@ class scat_student(models.Model):
             'payment_mode_id': partner.customer_payment_mode_id.id,
             'fiscal_position_id': partner.property_account_position_id.id
         }
+
+        print res
+        if invoice_type != 'out_invoice':
+            res ['type']=invoice_type
+
         invoice = self.env['account.invoice'].create(res)
 
         return invoice
@@ -344,5 +390,46 @@ class scat_student(models.Model):
 
 
         return lista_festivos
+
+    @api.multi
+    #@api.depends('total_ise','total_child')
+    def _get_qty(self):
+
+        for scat in self:
+            contador=len(scat.expedient_id.product_ids)
+            domain=[('scat_student_id', '=', scat.id), ('discount_line', '=', False)]
+            account_lines=self.env['account.invoice.line'].search(domain)
+            qty_ise=0
+            qty_child=0
+
+
+            for line in account_lines.filtered(lambda x: x.invoice_id.ise):
+                qty_ise+= line.invoice_id.type=='out_invoice' and line.quantity or -line.quantity
+
+            for line in account_lines.filtered(lambda x: not x.invoice_id.ise):
+                qty_child+=line.invoice_id.type=='out_invoice' and line.quantity or -line.quantity
+            qty_ise=qty_ise/contador
+            qty_child=qty_child/contador
+            scat.qty_invoiced_ise=qty_ise
+            scat.qty_to_invoice_ise=scat.total_ise-qty_ise
+            scat.qty_invoiced_child=qty_child
+            scat.qty_to_invoice_child=scat.total_child-qty_child
+
+        #if qty_invoiced_ise<qty_to_invoice_ise:
+            ##creamos factura ingreso
+        #else:
+            ##creamos factura rectificativa
+
+        #if qty_invoiced_ise<qty_to_invoice_ise:
+            ##creamos factura ingreso
+        #else:
+            ##creamos factura rectificativa
+
+
+    @api.multi
+    def write(self, vals):
+        print vals
+        super(ScatStudent, self).write(vals)
+        print vals
 
 

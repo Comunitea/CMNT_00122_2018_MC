@@ -15,6 +15,7 @@
                     <field name="journal_kids_id"/>
                     <field name="journal_ise_id"/>
                     <field name="state"/>
+
                 </tree>
             </field>
     </record>
@@ -50,6 +51,7 @@
                         <field name="end_date" readonly="True"/>
                         <field name="journal_kids_id"/>
                         <field name="journal_ise_id"/>
+                        <field name="discount_ise"/>
                         <notebook colspan="4">
                         <page string="Productos">
                             <field name="product_ids" colspan="4" nolabel="1"/>

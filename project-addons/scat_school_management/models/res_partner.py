@@ -66,4 +66,4 @@ class ResPartner(models.Model):
             last_date = datetime(today.year, today.month, last_day)
             dias_festivos=student.env['scat.student'].dias_festivos(first_day, last_date,school)
             vals={'student_id': student_seleccionado.id, 'school_id': school.id, 'month': str(today.month), 'year': str(today.year), 'start_date': first_day.strftime('%Y-%m-%d')}
-            student.env['scat.student'].control_presencia(student_seleccionado, school, first_day, last_day, today, last_date, dias_festivos, vals, codes)
+            student.env['scat.student'].control_presencia(student_seleccionado, school, first_day, last_day, today, last_date, dias_festivos, vals, codes, expedient_lines, ise_lines)

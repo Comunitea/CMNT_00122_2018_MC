@@ -44,6 +44,7 @@
              'views/scat_school_student_view.xml',
              'views/scat_course_view.xml',
              'views/res_partner_view.xml',
+             'views/account_invoice_view.xml',
              'views/project_task_view.xml',
              'security/scat_school_management_security.xml',
              'security/ir.model.access.csv',

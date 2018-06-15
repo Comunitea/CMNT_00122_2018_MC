@@ -81,6 +81,10 @@
                     <field name="total_ise"/>
                     <field name="total_child"/>
                     <field name="invoice_id"/>
+                    <field name="qty_to_invoice_child"/>
+                    <field name="qty_invoiced_child"/>
+                    <field name="qty_to_invoice_ise"/>
+                    <field name="qty_invoiced_ise"/>
                 </tree>
             </field>
     </record>
