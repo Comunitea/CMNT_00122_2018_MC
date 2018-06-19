@@ -141,7 +141,7 @@ class scat_student(models.Model):
 
     total_ise=fields.Integer("Total ise", compute="_contador_asiste", store=True)
     total_child=fields.Integer("Total niño", compute="_contador_asiste", store=True)
-    invoice_id = fields.Many2one('account.invoice', 'Factura')
+    invoice_id = fields.Many2one('account.invoice', 'Factura', readonly=True)
 
     @api.depends('dia1','dia2','dia3','dia4','dia5','dia6','dia7','dia8','dia9','dia10','dia11','dia12','dia13','dia14','dia15',
                  'dia16','dia17','dia18','dia19','dia20','dia21','dia22','dia23','dia24','dia25','dia26','dia27','dia28','dia29','dia30','dia31')
