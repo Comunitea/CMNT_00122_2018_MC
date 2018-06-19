@@ -9,4 +9,4 @@ from . import res_partner
 from . import scat_holidays
 from . import scat_school_student
 from . import project_task
-
+from . import account_invoice

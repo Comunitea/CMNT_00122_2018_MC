@@ -26,6 +26,9 @@ class scat_expediente(models.Model):
 
     product_ids = fields.One2many('scat.expediente.product', 'expediente_id', string ="Productos")
 
+    discount_ise = fields.Float("Descuento %")
+    product_discount_ise=fields.One2many('scat.expediente.product', 'expediente_id', string ="Producto ise")
+
 
     @api.multi
     def _get_display_name(self):
@@ -45,6 +48,8 @@ class scat_expediente(models.Model):
                 account = product.categ_id.property_account_income_categ_id.id
             else:
                 raise UserError("No se ha encontrado una cuenta de ingreso para el producto %s" % product.name)
+
+            #import ipdb;ipdb.set_trace()
             res.append({'product_id': product.id,
                         'price_unit': line.price_u,
                         'name': product.name,
