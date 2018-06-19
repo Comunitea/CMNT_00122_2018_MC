@@ -28,10 +28,9 @@ class ResPartner(models.Model):
         if not student.active_school_id or student.x_ise_estado != "usuario" or not student.parent_id or ( not student.y_ise_factura_aut and not student.y_ise_m and not student.y_ise_j and not student.y_ise_l
                 and not student.y_ise_x and not student.y_ise_s and not student.y_ise_v) :
             raise ValidationError("Faltan datos por configurar en el niño")
-        today = datetime.now()
+        today = first_day or datetime.now()
         last_day = calendar.monthrange(today.year, today.month)[1]
         last_date = datetime(today.year, today.month, last_day)
-        #import ipdb; ipdb.set_trace()
         codes={ "A":student.env['scat.student'].get_state_code("A"),
                 "F":student.env['scat.student'].get_state_code("F"),
                 "J":student.env['scat.student'].get_state_code("J"),
@@ -66,4 +65,4 @@ class ResPartner(models.Model):
             last_date = datetime(today.year, today.month, last_day)
             dias_festivos=student.env['scat.student'].dias_festivos(first_day, last_date,school)
             vals={'student_id': student_seleccionado.id, 'school_id': school.id, 'month': str(today.month), 'year': str(today.year), 'start_date': first_day.strftime('%Y-%m-%d')}
-            student.env['scat.student'].control_presencia(student_seleccionado, school, first_day, last_day, today, last_date, dias_festivos, vals, codes)
+            student.env['scat.student'].control_presencia(student_seleccionado, school, first_day, last_day, today, last_date, dias_festivos, vals, codes, expedient_lines, ise_lines)
