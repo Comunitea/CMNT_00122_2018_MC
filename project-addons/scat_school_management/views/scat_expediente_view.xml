@@ -50,6 +50,8 @@
                         <field name="end_date" readonly="True"/>
                         <field name="journal_kids_id"/>
                         <field name="journal_ise_id"/>
+                        <field name="canon_product_id" attrs="{'required': [('canon_percent', '!=', 0.0)]}"/>
+                        <field name="canon_percent" attrs="{'required': [('canon_product_id', '!=', False)]}"/>
                         <notebook colspan="4">
                         <page string="Productos">
                             <field name="product_ids" colspan="4" nolabel="1"/>

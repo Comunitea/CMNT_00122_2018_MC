@@ -36,6 +36,8 @@
              'wizard/scat_expedient_school_wzd_view.xml',
              'wizard/scat_student_control_presencia_wzd_view.xml',
              'views/scat_school_management_view.xml',
+             'wizard/scat_student_child_invoice_view.xml',
+             'wizard/scat_student_ise_invoice_view.xml',
              'views/scat_student_view.xml',
              'views/scat_expediente_product_view.xml',
              'views/scat_expediente_view.xml',
