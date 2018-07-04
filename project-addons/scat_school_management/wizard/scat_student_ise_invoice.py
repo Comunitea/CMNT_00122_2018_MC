@@ -76,7 +76,8 @@ class ScatStudentIseInvoiceWzd(models.TransientModel):
                             browse(curr_expedient.canon_product_id.id)
                         if product.property_account_expense_id:
                             account = product.property_account_expense_id.id
-                        elif product.categ_id.property_account_expense_categ_id:
+                        elif product.categ_id.\
+                                property_account_expense_categ_id:
                             account = product.categ_id.\
                                 property_account_expense_categ_id.id
                         else:
@@ -107,7 +108,8 @@ class ScatStudentIseInvoiceWzd(models.TransientModel):
                     curr_expedient = control.expedient_id
                     if not curr_expedient.journal_ise_id:
                         raise exceptions.\
-                            Warning("El diario no está establecido en el exp: %s" %
+                            Warning("El diario no está establecido en el "
+                                    "exp: %s" %
                                     (curr_expedient.display_name))
                     partner = self.env['res.partner'].\
                         with_context(force_company=
@@ -115,8 +117,8 @@ class ScatStudentIseInvoiceWzd(models.TransientModel):
                         browse(control.expedient_id.partner_id.id)
                     invoice = self.env['scat.student'].\
                         crear_cabecera_factura(partner,
-                                               journal=
-                                               control.expedient_id.journal_ise_id,
+                                               journal=control.
+                                               expedient_id.journal_ise_id,
                                                expedient=control.expedient_id,
                                                t='x')
 

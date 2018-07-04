@@ -209,6 +209,42 @@ class scat_student(models.Model):
                          'UNIQUE(month, year, student_id, school_id)',
                          "Ya hay un registro para ese alumno")]
 
+    @api.multi
+    def _write(self, vals):
+        if 'total_child' in vals:
+            for control in self:
+                orig_total_child = control.\
+                    read(['total_child'])[0]['total_child']
+                if control.invoice_id and \
+                        orig_total_child != vals['total_child']:
+                    new_qty = vals['total_child'] - orig_total_child
+                    partner = control.student_id.commercial_partner_id
+                    invoice = False
+                    if new_qty > 0:
+                        invoice = control.\
+                            crear_cabecera_factura(partner)
+                    elif new_qty < 0:
+                        invoice = control.\
+                            crear_cabecera_factura(partner,
+                                                   inv_type='out_refund')
+                    if invoice:
+                        expedient_lines = \
+                            control.expedient_id.get_invoice_lines()
+                        for line in expedient_lines:
+                            discount = partner.property_product_pricelist.\
+                                item_ids[0].percent_price
+                            l = {'invoice_id': invoice.id,
+                                 'quantity': abs(new_qty),
+                                 'discount': discount,
+                                 'account_analytic_id':
+                                 control.school_id.school_id.
+                                 analytic_account_id.id}
+                            l.update(line)
+                            self.env['account.invoice.line'].create(l)
+                        invoice.compute_taxes()
+
+        return super(scat_student, self)._write(vals)
+
     @api.model
     def get_next_month(self):
         today = datetime.now()
@@ -306,8 +342,9 @@ class scat_student(models.Model):
 
             self.create(new_vals)
 
-    def crear_cabecera_factura(self, partner, journal=False, expedient=False,
-                               t='child'):
+    def crear_cabecera_factura(self, partner, journal=False,
+                               expedient=False, t='child',
+                               inv_type='out_invoice'):
         if not expedient:
             expedient = self.expedient_id
         if not journal:
@@ -318,12 +355,15 @@ class scat_student(models.Model):
             u', mes: ' + self.month + u' año: ' +
             self.year or expedient.display_name,
             'journal_id': journal.id,
+            'type': inv_type,
             'company_id': expedient.company_id.id,
             'account_id': partner.property_account_receivable_id.id,
             'partner_id': t == 'child' and self.student_id.id or partner.id,
             'payment_term_id': partner.property_payment_term_id.id,
             'payment_mode_id': partner.customer_payment_mode_id.id,
-            'fiscal_position_id': partner.property_account_position_id.id
+            'fiscal_position_id': partner.property_account_position_id.id,
+            'origin_invoice_ids': inv_type == 'out_refund' and
+            [(6, 0, [self.invoice_id.id])] or [(6, 0, [])]
         }
         invoice = self.env['account.invoice'].create(res)
 
