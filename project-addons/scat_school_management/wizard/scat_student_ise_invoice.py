@@ -52,7 +52,7 @@ class ScatStudentIseInvoiceWzd(models.TransientModel):
                         self.env['account.invoice.line'].\
                             create({'product_id': product.id,
                                     'price_unit':
-                                    ise_lines[school][product.id],
+                                    ise_lines[school][product.id][0],
                                     'name': product.name,
                                     'invoice_line_tax_ids':
                                     [(6, 0,
@@ -67,7 +67,7 @@ class ScatStudentIseInvoiceWzd(models.TransientModel):
                                     'account_analytic_id':
                                     school_id.school_id.
                                     analytic_account_id.id})
-                        school_amount += ise_lines[school][product.id]
+                        school_amount += ise_lines[school][product.id][1]
                     if curr_expedient.canon_product_id and \
                             curr_expedient.canon_percent:
                         product = self.env['product.product'].\
@@ -135,9 +135,12 @@ class ScatStudentIseInvoiceWzd(models.TransientModel):
                     percent_price
                 ise_price = control.total_ise * line['price_unit'] * \
                     (discount / 100.0)
+                canon_price = control.total_ise * line['price_unit']
                 if ise_lines[control.school_id.id].get(line['product_id']):
-                    ise_lines[control.school_id.id][line['product_id']] += \
+                    ise_lines[control.school_id.id][line['product_id']][0] += \
                         ise_price
+                    ise_lines[control.school_id.id][line['product_id']][1] += \
+                        canon_price
                 else:
                     ise_lines[control.school_id.id][line['product_id']] = \
-                        ise_price
+                        [ise_price, canon_price]
