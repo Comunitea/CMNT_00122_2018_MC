@@ -19,7 +19,7 @@
         <field name="x_ise_centro" position="after" >
             <field name="active_school_id"/>
             <field name="course_id"/>
-            <button name="action_view_ticado" string="Control de presencia" type="object" class="oe_stat_button" icon="fa-user" help="Genera el calendario de control de presencia"/>
+            <button name="%(action_wizard_control_presencia)d" string="Control de presencia" type="action" class="oe_stat_button" icon="fa-user" help="Genera el calendario de control de presencia"/>
             <newline/>
         </field>
          <div class="oe_button_box" name="button_box">
