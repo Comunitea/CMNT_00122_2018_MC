@@ -21,7 +21,7 @@ class ScatMenuConfig(models.Model):
     name = fields.Char("Nombre", size=140, required=True,
                        states={'done': [('readonly', False)]})
     menu_line_ids = fields.One2many('scat.menu.config.line', "menu_config_id",
-                                    "Lineas",
+                                    "Lineas", copy=True,
                                     states={'done': [('readonly', False)]})
     state = fields.Selection([('draft', 'Borrador'), ('open', 'En progreso'),
                               ('done', 'Terminado')], "Estado", required=True,
@@ -96,7 +96,7 @@ class ScatMenuRotative(models.Model):
     name = fields.Char("Nombre", required=True,
                        states={'done': [('readonly', False)]})
     line_ids = fields.One2many("scat.menu.rotative.line", "rotative_id",
-                               u"Menús",
+                               u"Menús", copy=True,
                                states={'done': [('readonly', False)]})
     last_created_menu_id = fields.Many2one('scat.menu', u"Últ. menú",
                                            compute="_get_last_menu_data")
@@ -104,7 +104,7 @@ class ScatMenuRotative(models.Model):
                                                 compute="_get_last_menu_data")
     start_date = fields.Date("Fecha de inicio", required=True,
                              states={'done': [('readonly', False)]})
-    end_date = fields.Date("Fecha de fin",
+    end_date = fields.Date("Fecha de fin", copy=False,
                            states={'done': [('readonly', False)]})
     state = fields.Selection([('draft', 'Borrador'), ('open', 'En progreso'),
                               ('done', 'Finalizado')], "Estado", required=True,
@@ -128,6 +128,20 @@ class ScatMenuRotative(models.Model):
                 rotative.last_created_menu_id = last_menu.id
                 rotative.last_created_menu_sequence = \
                     last_menu.rotative_line_id.sequence
+
+    @api.model
+    def _get_dates_between(self, holidays):
+        lista_festivos = set()
+
+        for holiday in holidays:
+            start_date = datetime.strptime(holiday.start_date, "%Y-%m-%d")
+            end_date = datetime.strptime(holiday.end_date, "%Y-%m-%d")
+            lista_fechas = [start_date + relativedelta(days=d)
+                            for d in range((end_date - start_date).days + 1)]
+
+            lista_festivos.update(lista_fechas)
+
+        return list(lista_festivos)
 
     @api.model
     def _generate_menus(self):
@@ -162,19 +176,29 @@ class ScatMenuRotative(models.Model):
             final_date = next_month.strftime("%Y-%m-%d")
             if rotative.end_date and final_date > rotative.end_date:
                 final_date = rotative.end_date
+            national_holidays = self.env['scat.holidays'].\
+                search([('holiday_type', '=', 'nacional'),
+                        ('end_date', '>=', last_date),
+                        ('start_date', '<=', final_date)])
+            lista_festivos = self._get_dates_between(national_holidays)
             while last_date < final_date:
-                next_line = next_sequence()
-                last_sequence = next_line.sequence
-                last_date = (datetime.strptime(last_date, '%Y-%m-%d') +
-                             relativedelta(days=1)).strftime("%Y-%m-%d")
-                menu = self.env['scat.menu'].\
-                    create({'name': u"[%s] %s" % (next_line.rotative_id.name,
-                                                  next_line.menu_id.name),
-                            'date': last_date,
-                            'menu_config_id': next_line.menu_id.id,
-                            'state': 'confirmed',
-                            'rotative_line_id': next_line.id})
-                menu.load_lines()
+                last_date = datetime.strptime(last_date, '%Y-%m-%d') + \
+                    relativedelta(days=1)
+                if last_date.weekday() < 5 and last_date not in lista_festivos:
+                    next_line = next_sequence()
+                    last_sequence = next_line.sequence
+                    last_date = last_date.strftime("%Y-%m-%d")
+                    menu = self.env['scat.menu'].\
+                        create({'name': u"[%s] %s" %
+                                (next_line.rotative_id.name,
+                                 next_line.menu_id.name),
+                                'date': last_date,
+                                'menu_config_id': next_line.menu_id.id,
+                                'state': 'confirmed',
+                                'rotative_line_id': next_line.id})
+                    menu.load_lines()
+                else:
+                    last_date = last_date.strftime("%Y-%m-%d")
 
 
 class ScatMenuRotativeLine(models.Model):
@@ -227,7 +251,8 @@ class ScatMenu(models.Model):
     state = fields.Selection([('draft', 'Borrador'),
                               ('confirmed', 'Confirmado')], "Estado",
                              readonly=True, required=True, default="draft")
-    menu_line_ids = fields.One2many("scat.menu.line", "menu_id", u"Menús")
+    menu_line_ids = fields.One2many("scat.menu.line", "menu_id", u"Menús",
+                                    copy=True)
     rotative_line_id = fields.Many2one('scat.menu.rotative.line', "Rotativo")
 
     @api.multi
@@ -245,37 +270,6 @@ class ScatMenu(models.Model):
                 del dt['menu_config_id']
                 dt['menu_id'] = menu.id
                 self.env['scat.menu.line'].create(dt)
-
-    @api.multi
-    def create_prod(self, warehouse, qty, mtype):
-        picking_type = self.env['stock.picking.type'].\
-            search([('code', '=', 'mrp_operation'),
-                    ('warehouse_id', '=', warehouse.id)], limit=1)
-        for menu in self:
-            for line in menu.menu_line_ids.\
-                    filtered(lambda x: mtype in x.mtype_ids and
-                             x.product_id.bom_ids):
-                if not line.product_id:
-                    raise exceptions.Warning(u"Todas las lineas del menú %s "
-                                             u"deben de tener producto "
-                                             u"asociado." % menu.name)
-                prod = self.env['mrp.production'].\
-                    create({'menu_line_id': line.id,
-                            'product_id': line.product_id.id,
-                            'product_qty': qty,
-                            'product_uom_id': line.product_id.uom_id.id,
-                            'picking_type_id': picking_type.id,
-                            'location_src_id':
-                            picking_type.default_location_src_id.id,
-                            'location_dest_id':
-                            picking_type.default_location_dest_id.id,
-                            'date_planned_start':
-                            fields.Date.from_string(menu.date) -
-                            relativedelta(days=1),
-                            'date_planned_finished': menu.date,
-                            'bom_id': line.product_id.bom_ids[0].id})
-                if prod.availability != 'none':
-                    prod.action_assign()
 
 
 class ScatMenuLine(models.Model):
