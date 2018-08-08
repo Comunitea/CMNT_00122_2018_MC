@@ -18,8 +18,9 @@ class scat_expediente(models.Model):
                                  readonly=True,
                                  states={'borrador': [('readonly', False)]})
     start_date = fields.Date("Fecha inicio", required=True, readonly=True,
-                             states={'borrador': [('readonly', False)]})
-    end_date = fields.Date("Fecha de fin", readonly=True,
+                             states={'borrador': [('readonly', False)]},
+                             default=fields.Date.today, copy=False)
+    end_date = fields.Date("Fecha de fin", readonly=True, copy=False,
                            states={'borrador': [('readonly', False)]})
     school_ids = fields.Many2many('scat.school',
                                   relation='scat_expediente_scat_school_rel',
@@ -43,10 +44,14 @@ class scat_expediente(models.Model):
                                      required=True)
 
     product_ids = fields.One2many('scat.expediente.product', 'expediente_id',
-                                  "Productos")
+                                  "Productos", copy=True)
     canon_product_id = fields.Many2one('product.product', "Canon")
     canon_percent = fields.Float("% Canon", digits=(5, 2),
                                  help="Sobre 100")
+
+    _sql_constraints = [('expedient_unique',
+                         'UNIQUE(n_expediente, n_lote, start_date)',
+                         u"El expediente debe ser único")]
 
     @api.multi
     def _get_display_name(self):
