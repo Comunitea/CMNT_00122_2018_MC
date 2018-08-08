@@ -269,6 +269,7 @@ class ScatMenu(models.Model):
                 del dt['id']
                 del dt['menu_config_id']
                 dt['menu_id'] = menu.id
+                dt['mtype_ids'] = [(6, 0, dt['mtype_ids'])]
                 self.env['scat.menu.line'].create(dt)
 
 
