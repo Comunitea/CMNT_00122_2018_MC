@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import fields, models
+from odoo import fields, models, api
 
 
 class scat_school(models.Model):
@@ -35,3 +35,11 @@ class AccountAnalyticLine(models.Model):
     company_id = fields.Many2one("res.company", related=None, string='Company',
                                  readonly=True,
                                  default=lambda s: s.env.user.company_id.id)
+
+    @api.multi
+    def _write(self, vals):
+        if vals.get('partner_id', False):
+            res = super(AccountAnalyticLine, self.sudo())._write(vals)
+        else:
+            res = super(AccountAnalyticLine, self)._write(vals)
+        return res
