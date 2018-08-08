@@ -373,9 +373,10 @@ class scat_student(models.Model):
         return self.env.ref("scat_school_management.code_"+code.lower()).id
 
     def dias_festivos(self, first_day, last_date, school):
-        domain = [('school_ids', 'in', [school.id]),
-                  ('end_date', '>=', first_day.strftime('%Y-%m-%d')),
-                  ('start_date', '<=', last_date.strftime('%Y-%m-%d'))]
+        domain = [('end_date', '>=', first_day.strftime('%Y-%m-%d')),
+                  ('start_date', '<=', last_date.strftime('%Y-%m-%d')),
+                  '|', ('holiday_type', '=', 'nacional'),
+                  ('school_ids', 'in', [school.id])]
 
         lista_festivos = set()
 
@@ -393,6 +394,6 @@ class scat_student(models.Model):
             lista_fechas = [start_date + timedelta(days=d)
                             for d in range((end_date - start_date).days + 1)]
 
-            lista_festivos = set(lista_fechas)
+            lista_festivos.update(lista_fechas)
 
         return lista_festivos
