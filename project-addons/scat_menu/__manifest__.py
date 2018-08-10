@@ -14,7 +14,6 @@ Modulo para a gestión de menús
 Gestión de Menús
 """,
     'data': ['views/scat_menu_view.xml',
-             'views/mrp_production_view.xml',
              'security/ir.model.access.csv',
              'data/scat_menu_data.xml'],
     'installable': True,

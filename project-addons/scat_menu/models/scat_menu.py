@@ -39,6 +39,7 @@ class ScatMenuConfig(models.Model):
 class ScatMenuConfigLine(models.Model):
 
     _name = "scat.menu.config.line"
+    _order = "sequence asc"
 
     product_id = fields.Many2one('product.product', 'Plato',
                                  domain=[('type', '!=', 'service')])
@@ -53,6 +54,7 @@ class ScatMenuConfigLine(models.Model):
                             'Momento', required=True)
     product_qty = fields.Float("Cant.", required=True, default=1.0)
     menu_config_id = fields.Many2one('scat.menu.config', u"Menú")
+    sequence = fields.Integer("Sequence", default=1)
 
     @api.onchange('product_id')
     def onchange_product_id(self):
@@ -277,6 +279,7 @@ class ScatMenuLine(models.Model):
 
     _inherit = "scat.menu.config.line"
     _name = "scat.menu.line"
+    _order = "sequence asc"
 
     menu_id = fields.Many2one("scat.menu", u"Menú")
 

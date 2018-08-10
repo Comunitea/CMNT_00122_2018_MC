@@ -1,0 +1,19 @@
+# -*- coding: utf-8 -*-
+
+{
+    'name': 'Menus - Colegios',
+    'version': '10.0.0.1.0',
+    'author': "Comunitea",
+    'website': 'https://www.comunitea.com',
+    'license': 'AGPL-3',
+    'summary':
+    u'Sistema de Catering: Integración del módulo de colegios y menús',
+    'depends': ['base', 'scat_menu', 'scat_school_management', 'stock'],
+    'data': ['views/scat_school_view.xml',
+             'views/scat_expediente_view.xml',
+             'views/scat_course_view.xml',
+             'views/scat_menu_view.xml',
+             'data/scat_school_menu_data.xml'],
+    'installable': True,
+    'auto_install': False,
+}
