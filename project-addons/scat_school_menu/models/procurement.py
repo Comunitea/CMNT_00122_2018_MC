@@ -36,8 +36,9 @@ class ProcurementOrder(models.Model):
         self.ensure_one()
         exist_mo.product_qty = exist_mo.product_qty + self.product_qty
         exist_mo.move_raw_ids.action_cancel()
+        exist_mo.move_finished_ids.action_cancel()
         exist_mo.move_raw_ids.unlink()
-        exist_mo._generate_moves()
+        exist_mo.move_finished_ids.unlink()
 
     @api.multi
     def make_mo(self):
@@ -46,7 +47,9 @@ class ProcurementOrder(models.Model):
             exist_mo = procurement.search_existing_mo()
             if exist_mo:
                 procurement.extend_mo(exist_mo)
+                exist_mo.procurement_ids = [(4, procurement.id)]
                 res[procurement.id] = exist_mo.id
+                exist_mo._generate_moves()
             else:
                 res[procurement.id] = \
                     super(ProcurementOrder, procurement).\
