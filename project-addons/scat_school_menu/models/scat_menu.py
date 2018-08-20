@@ -28,87 +28,90 @@ class ScatMenu(models.Model):
     def create_pickings(self):
         new_procs = self.env['procurement.order']
         for menu in self:
-            expedients = self.env['scat.expediente'].\
+            schools = self.env['scat.school'].\
                 search([('rotative_menu_id', '=',
-                         menu.rotative_line_id.rotative_id.id),
-                        ('start_date', '<=', menu.date),
-                        ('state', '=', 'open'),
-                        '|', ('end_date', '=', False),
-                        ('end_date', '>=', menu.date)])
+                         menu.rotative_line_id.rotative_id.id)])
             dt = datetime.strptime(menu.date, "%Y-%m-%d")
-            for exp in expedients:
-                for school in exp.school_ids:
-                    products = {}
-                    presencias = self.env['scat.student'].\
-                        search([('school_id', '=', school.id),
-                                ('month', '=', str(dt.month)),
-                                ('year', '=', str(dt.year)),
-                                ('dia' + str(dt.day) + "_code", '=', "A")])
-                    partner = self.env['res.partner'].\
-                        with_context(force_company=exp.company_id.id).\
-                        browse(school.partner_id.id)
-                    group = self.env["procurement.group"].\
-                        create({'name': u"Menú " + menu.date + u": " +
-                                school.name,
-                                'partner_id': partner.id})
-                    for presencia in presencias:
-                        visited_moments = []
-                        for line in menu.menu_line_ids:
-                            include_line = False
-                            if line.mode not in visited_moments:
-                                conflict_allergens = line.\
-                                    mapped('mtype_ids.conflict_allergens_ids')
-                                if presencia.student_id.allergens_ids:
-                                    if set(presencia.student_id.
-                                           allergens_ids).\
-                                            issubset(set(conflict_allergens)):
-                                        include_line = True
-                                else:
+            for school in schools:
+                active_expedients = school.expedient_ids.\
+                    filtered(lambda r: r.state == 'open' and r.start_date <=
+                             menu.date and (not r.end_date or r.end_date >=
+                                            menu.date))
+                if active_expedients:
+                    exp = active_expedients[0]
+                else:
+                    continue
+                products = {}
+                presencias = self.env['scat.student'].\
+                    search([('school_id', '=', school.id),
+                            ('month', '=', str(dt.month)),
+                            ('year', '=', str(dt.year)),
+                            ('dia' + str(dt.day) + "_code", '=', "A")])
+                partner = self.env['res.partner'].\
+                    with_context(force_company=exp.company_id.id).\
+                    browse(school.partner_id.id)
+                group = self.env["procurement.group"].\
+                    create({'name': u"Menú " + menu.date + u": " +
+                            school.name,
+                            'partner_id': partner.id})
+                for presencia in presencias:
+                    visited_moments = []
+                    for line in menu.menu_line_ids:
+                        include_line = False
+                        if line.mode not in visited_moments:
+                            conflict_allergens = line.\
+                                mapped('mtype_ids.conflict_allergens_ids')
+                            if presencia.student_id.allergens_ids:
+                                if set(presencia.student_id.
+                                       allergens_ids).\
+                                        issubset(set(conflict_allergens)):
                                     include_line = True
-                            if include_line:
-                                visited_moments.append(line.mode)
-                                if not line.product_id:
-                                    raise exceptions.\
-                                        Warning(u"La linea %s del menú no "
-                                                u"puede procesarse porque no "
-                                                u"tiene producto." % line.name)
-                                if presencia.student_id.course_id:
-                                    qty = line.product_qty * \
-                                        presencia.student_id.course_id.\
-                                        ration_percentage
-                                else:
-                                    qty = line.product_qty
-                                if products.get(line.product_id.id):
-                                    products[line.product_id.id] += qty
-                                else:
-                                    products[line.product_id.id] = qty
+                            else:
+                                include_line = True
+                        if include_line:
+                            visited_moments.append(line.mode)
+                            if not line.product_id:
+                                raise exceptions.\
+                                    Warning(u"La linea %s del menú no "
+                                            u"puede procesarse porque no "
+                                            u"tiene producto." % line.name)
+                            if presencia.student_id.course_id:
+                                qty = line.product_qty * \
+                                    presencia.student_id.course_id.\
+                                    ration_percentage
+                            else:
+                                qty = line.product_qty
+                            if products.get(line.product_id.id):
+                                products[line.product_id.id] += qty
+                            else:
+                                products[line.product_id.id] = qty
 
-                    for product_id in products:
-                        prod = self.env["product.product"].\
-                            browse(product_id)
-                        proc_vals = {'name': prod.name,
-                                     'origin': menu.name,
-                                     'date_planned': menu.date,
-                                     'product_id': prod.id,
-                                     'product_qty': products[product_id],
-                                     'product_uom': prod.uom_id.id,
-                                     'company_id': exp.company_id.id,
-                                     'menu_id': menu.id,
-                                     'group_id': group.id,
-                                     'location_id':
-                                     partner.property_stock_customer.id,
-                                     'warehouse_id': school.warehouse_id.id,
-                                     'partner_dest_id': partner.id}
-                        new_proc = self.env["procurement.order"].\
-                            with_context(procurement_autorun_defer=True).\
-                            create(proc_vals)
-                        new_procs |= new_proc
+                for product_id in products:
+                    prod = self.env["product.product"].\
+                        browse(product_id)
+                    proc_vals = {'name': prod.name,
+                                 'origin': menu.name,
+                                 'date_planned': menu.date,
+                                 'product_id': prod.id,
+                                 'product_qty': products[product_id],
+                                 'product_uom': prod.uom_id.id,
+                                 'company_id': exp.company_id.id,
+                                 'menu_id': menu.id,
+                                 'group_id': group.id,
+                                 'location_id':
+                                 partner.property_stock_customer.id,
+                                 'warehouse_id': school.warehouse_id.id,
+                                 'partner_dest_id': partner.id}
+                    new_proc = self.env["procurement.order"].\
+                        with_context(procurement_autorun_defer=True).\
+                        create(proc_vals)
+                    new_procs |= new_proc
         new_procs.run()
 
     @api.model
-    def action_create_pickings_run(self):
+    def action_create_pickings_run(self, weeks=4):
         today = datetime.now()
-        next_month = today + relativedelta(weeks=4)
+        next_month = today + relativedelta(weeks=weeks)
         menus = self.search([('state', '=', 'confirmed'),
                              ('date', '<=',
                               next_month.strftime("%Y-%m-%d")),

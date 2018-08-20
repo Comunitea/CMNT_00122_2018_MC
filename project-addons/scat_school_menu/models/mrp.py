@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-from odoo import fields, models, api, _
+from odoo import fields, models, api, _, exceptions
+from datetime import datetime
 
 
 class MrpProduction(models.Model):
@@ -48,7 +49,7 @@ class MrpProductProduce(models.TransientModel):
                 browse(self._context['active_id'])
             if production.create_day_lot and \
                     production.product_id.tracking == 'lot':
-                lot_name = fields.Date.today()
+                lot_name = datetime.now().strftime("%Y%m%d")
                 lots = self.env["stock.production.lot"].\
                     search([('product_id', '=', production.product_id.id),
                             ('name', '=', lot_name)])
@@ -70,8 +71,9 @@ class MrpProductProduce(models.TransientModel):
         for produce_move in produce_moves:
             if produce_move and produce_move.product_id.tracking != 'none':
                 if not self.lot_id:
-                    raise UserError(_('You need to provide a lot for the '
-                                      'finished product'))
+                    raise exceptions.\
+                        UserError(_('You need to provide a lot for the '
+                                    'finished product'))
                 existing_move_lot = produce_move.move_lot_ids.\
                     filtered(lambda x: x.lot_id == self.lot_id)
                 if existing_move_lot:
@@ -97,7 +99,7 @@ class MrpProductProduce(models.TransientModel):
                         if remaining_qty > 0:
                             default = {'quantity': movelots.quantity_done,
                                        'lot_produced_id': self.lot_id.id}
-                            new_move_lot = movelots.copy(default=default)
+                            movelots.copy(default=default)
                             movelots.write({'quantity': remaining_qty,
                                             'quantity_done': 0})
                         else:

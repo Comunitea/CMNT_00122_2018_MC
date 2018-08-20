@@ -11,7 +11,6 @@
     'depends': ['base', 'scat_menu', 'scat_school_management', 'stock',
                 'mrp_auto_assign'],
     'data': ['views/scat_school_view.xml',
-             'views/scat_expediente_view.xml',
              'views/scat_course_view.xml',
              'views/scat_menu_view.xml',
              'data/scat_school_menu_data.xml',

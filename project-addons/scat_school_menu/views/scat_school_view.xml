@@ -13,7 +13,7 @@
     </record>
 
     <record model="ir.ui.view" id="scat_school_search_view_add_wh">
-        <field name="name">scat.school.tree.add_wh</field>
+        <field name="name">scat.school.search.add_wh</field>
         <field name="model">scat.school</field>
         <field name="inherit_id" ref="scat_school_management.scat_school_search_view"/>
         <field name="arch" type="xml">
@@ -30,6 +30,7 @@
         <field name="arch" type="xml">
             <field name="partner_id" position="after">
                 <field name="warehouse_id"/>
+                <field name="rotative_menu_id"/>
             </field>
         </field>
     </record>

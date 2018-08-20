@@ -14,6 +14,13 @@ class ProcurementOrder(models.Model):
         return res
 
     @api.multi
+    def make_po(self):
+        res = super(ProcurementOrder, self).make_po()
+        for proc in self.browse(list(set(res))):
+            proc.purchase_id.button_confirm()
+        return res
+
+    @api.multi
     def search_existing_mo(self):
         self.ensure_one()
         domain = [
@@ -50,6 +57,7 @@ class ProcurementOrder(models.Model):
                 exist_mo.procurement_ids = [(4, procurement.id)]
                 res[procurement.id] = exist_mo.id
                 exist_mo._generate_moves()
+                exist_mo.action_assign()
             else:
                 res[procurement.id] = \
                     super(ProcurementOrder, procurement).\
