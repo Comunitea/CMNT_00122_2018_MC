@@ -18,6 +18,13 @@
         <field name="domain_force">[('company_id', 'child_of', [user.company_id.id])]</field>
     </record>
 
+    <record model="ir.rule" id="scat_school_ise_integration_comp_rule">
+        <field name="name">ISE integration: multi-company</field>
+        <field name="model_id" ref="model_scat_school_ise_integration"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">[('company_id', 'child_of', [user.company_id.id])]</field>
+    </record>
+
     <record model="ir.module.category" id="module_category_scat_school_management">
            <field name="name">Gestor de Colegios</field>
            <field name="description">Gestiona los permisos de Colegios</field>

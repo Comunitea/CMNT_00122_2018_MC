@@ -41,6 +41,14 @@
         <field name="view_mode">tree,form</field>
     </record>
 
+    <record model="ir.actions.act_window" id = "scat_log_ise">
+        <field name="name">Log ISE</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">scat.school.ise.integration</field>
+        <field name="view_type">form</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
     <record id="action_view_alumnos" model="ir.actions.act_window">
         <field name="res_model">res.partner</field>
         <field name="view_type">form</field>
@@ -68,5 +76,7 @@
     <menuitem id="submenu_scat_holidays" name="Vacaciones" action="scat_holidays" parent="m_configuration" sequence="2"/>
 
     <menuitem id="submenu_scat_course" name="Cursos" action="scat_course" parent="m_configuration" sequence="3"/>
+
+    <menuitem id="submenu_scat_log_ise" name="Log ISE" action="scat_log_ise" parent="m_configuration" sequence="4"/>
 
 </odoo>
