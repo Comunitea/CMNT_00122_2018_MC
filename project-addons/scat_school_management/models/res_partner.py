@@ -17,7 +17,7 @@ class ResPartner(models.Model):
     course_id = fields.Many2one('scat.course', 'Cursos')
 
     @api.multi
-    @api.depends('school_ids')
+    @api.depends('school_ids', 'school_ids.end_date')
     def get_active_school(self):
         for partner in self:
             schools = partner.school_ids.filtered(lambda x: not x.end_date)

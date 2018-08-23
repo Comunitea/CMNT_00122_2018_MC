@@ -143,6 +143,11 @@ class ScatSchoolIseIntegration(models.Model):
                        'school_id': school.id,
                        'company_name': exp.company_id.name,
                        'student_id': child.id}
+        if child_data.FECHAHASTASERVICIO:
+            end_date = datetime.strptime(str(child_data.FECHAHASTASERVICIO),
+                                         '%d/%m/%Y').strftime('%Y-%m-%d')
+            if end_date <= fields.Date.today():
+                school_vals['end_date'] = end_date
         self.env['scat.school.student'].create(school_vals)
 
     @api.multi
@@ -179,11 +184,10 @@ class ScatSchoolIseIntegration(models.Model):
                                        % child.name, message_type='comment')
             self._create_student_school(child, child_data, school, exp)
         elif child_data.FECHAHASTASERVICIO and open_schools:
-            open_schools.write({'end_date':
-                                datetime.
-                                strptime(str(child_data.FECHAHASTASERVICIO),
-                                         '%d/%m/%Y').
-                                strftime('%Y-%m-%d')})
+            end_date = datetime.strptime(str(child_data.FECHAHASTASERVICIO),
+                                         '%d/%m/%Y').strftime('%Y-%m-%d')
+            if end_date <= fields.Date.today():
+                open_schools.write({'end_date': end_date})
 
         pricelist_item = self._get_pricelist_item(child_data)
         if not pricelist_item:
