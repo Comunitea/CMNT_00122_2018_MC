@@ -30,8 +30,13 @@ class ScatSchoolIseIntegration(models.Model):
 
     @api.multi
     def _get_pricelist_item(self, child):
-        pricelist_item = self.env['product.pricelist.item'].\
-            search([('percent_price', '=', child.BONIFICACIONISE)])
+        if child.BONIFICACIONISE:
+            pricelist_item = self.env['product.pricelist.item'].\
+                search([('percent_price', '=', child.BONIFICACIONISE)],
+                       limit=1)
+        else:
+            pricelist_item = self.env['product.pricelist.item'].\
+                search([('percent_price', '=', False)], limit=1)
         if not pricelist_item:
             self.message_post(body=u"Cree una tarifa de venta con una "
                               u"bonificación de %s." %
@@ -111,7 +116,7 @@ class ScatSchoolIseIntegration(models.Model):
                               message_type='notification')
 
     @api.multi
-    def _update_parent_data(self, parent, child_data):
+    def _update_parent_data(self, parent, child_data, exp):
         update_vals = {}
         if parent.street != child_data.DIRECCION:
             update_vals['street'] = child_data.DIRECCION
@@ -133,7 +138,8 @@ class ScatSchoolIseIntegration(models.Model):
             update_vals['name'] = child_data.NOMBRETITULAR + u" " + \
                 child_data.APELLIDOSTITULAR
         if update_vals:
-            parent.write(update_vals)
+            parent.with_context(force_company=exp.company_id.id).\
+                write(update_vals)
 
     @api.multi
     def _create_student_school(self, child, child_data, school, exp):
@@ -169,8 +175,14 @@ class ScatSchoolIseIntegration(models.Model):
 
     @api.multi
     def check_child_data(self, child_data, child, school, exp):
+        schools = self.env['scat.school.student'].\
+            search([('student_id', '=', child.id),
+                    ('school_id', '=', school.id),
+                    ('start_date', '=', datetime.
+                     strptime(str(child_data.FECHADESDESERVICIO),
+                              '%d/%m/%Y').strftime('%Y-%m-%d'))])
         open_schools = child.school_ids.filtered(lambda x: not x.end_date)
-        if school.id != child.active_school_id.id:
+        if not schools:
             if open_schools:
                 open_schools.\
                     write({'end_date':
@@ -178,9 +190,9 @@ class ScatSchoolIseIntegration(models.Model):
                            strptime(str(child_data.FECHADESDESERVICIO),
                                     '%d/%m/%Y').strftime('%Y-%m-%d')})
                 self.message_post(body=u"Se ha finalizado un colegio para el "
-                                       u"niño %s por cambio de colegio. "
-                                       u"Revisad el control de presencia "
-                                       u"actual y crear el nuevo."
+                                       u"niño %s por cambio de colegio o "
+                                       u"fechas. Revisad el control de "
+                                       u"presencia actual y cread el nuevo."
                                        % child.name, message_type='comment')
             self._create_student_school(child, child_data, school, exp)
         elif child_data.FECHAHASTASERVICIO and open_schools:
@@ -209,22 +221,30 @@ class ScatSchoolIseIntegration(models.Model):
             if parent[0].id != child.parent_id.id:
                 child.parent_id = parent[0].id
             parent = parent[0]
-            self._update_parent_data(parent, child_data)
+            self._update_parent_data(parent, child_data, exp)
             if country and parent.country_id.id != country.id:
                 parent.country_id = country.id
+            parent_comp = self.env['res.partner'].\
+                with_context(force_company=exp.company_id.id).browse(parent.id)
+            if pricelist_item.pricelist_id.id != \
+                    parent_comp.property_product_pricelist.id:
+                parent_comp.property_product_pricelist = \
+                    pricelist_item.pricelist_id.id
+                self.message_post(body=u"Se ha actualizado la bonificación "
+                                       u"para el niño %s desde el ISE, revisad"
+                                       u" su facturación."
+                                       % child.name,
+                                       message_type='notification')
         else:
             parent_vals = self._get_parent_vals(child_data)
             parent_vals['property_product_pricelist'] = \
                 pricelist_item.pricelist_id.id
             parent_vals['country_id'] = country and country.id or False
-            parent = self.env['res.partner'].create(parent_vals)
+            parent = self.env['res.partner'].\
+                with_context(force_company=exp.company_id.id).\
+                create(parent_vals)
             child.parent_id = parent.id
             self._try_write_vat(parent, country, child_data)
-
-        if pricelist_item.pricelist_id.id != \
-                child.parent_id.property_product_pricelist.id:
-            child.parent_id.property_product_pricelist = \
-                pricelist_item.pricelist_id.id
 
         if child_data.CUENTABANCARIA:
             self._set_acc_number(parent, child_data, country, exp)
@@ -250,12 +270,15 @@ class ScatSchoolIseIntegration(models.Model):
 
         if parent:
             parent = parent[0]
+            self._update_parent_data(parent, child, exp)
         else:
             parent_vals = self._get_parent_vals(child)
             parent_vals['property_product_pricelist'] = \
                 pricelist_item.pricelist_id.id
             parent_vals['country_id'] = country and country.id or False
-            parent = self.env['res.partner'].create(parent_vals)
+            parent = self.env['res.partner'].\
+                with_context(force_company=exp.company_id.id).\
+                create(parent_vals)
             self._try_write_vat(parent, country, child)
 
         if child.CUENTABANCARIA:
