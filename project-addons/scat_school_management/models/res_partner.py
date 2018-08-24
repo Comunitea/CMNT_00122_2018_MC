@@ -15,6 +15,8 @@ class ResPartner(models.Model):
     school_ids = fields.One2many('scat.school.student', 'student_id',
                                  'Colegios')
     course_id = fields.Many2one('scat.course', 'Cursos')
+    comensal_type = fields.Selection([('A', u'Alumno'), ('P', 'Profesor'),
+                                      ('D', 'Director')], 'Tipo de comensal')
 
     @api.multi
     @api.depends('school_ids', 'school_ids.end_date')

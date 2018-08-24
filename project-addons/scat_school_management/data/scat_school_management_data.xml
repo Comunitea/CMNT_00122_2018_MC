@@ -6,7 +6,6 @@
         <field name="value">http://oficinavirtualws.iseandalucia.es/ServicioWebComedoresISE/services/Comedores?wsdl</field>
     </record>
 
-    <!-- Calendar Planned Action-->
         <record forcecreate="True" id="ir_cron_ise_children_download" model="ir.cron">
             <field name="name">Sincronización niños ISE</field>
             <field eval="True" name="active" />
@@ -17,6 +16,18 @@
             <field eval="False" name="doall" />
             <field eval="'scat.school.ise.integration'" name="model" />
             <field eval="'action_sync_children'" name="function" />
+        </record>
+
+        <record forcecreate="True" id="ir_cron_ise_professors_download" model="ir.cron">
+            <field name="name">Sincronización profesores ISE</field>
+            <field eval="True" name="active" />
+            <field name="user_id" ref="base.user_root" />
+            <field name="interval_number">1</field>
+            <field name="interval_type">months</field>
+            <field name="numbercall">-1</field>
+            <field eval="False" name="doall" />
+            <field eval="'scat.school.ise.integration'" name="model" />
+            <field eval="'action_sync_professor'" name="function" />
         </record>
 
 </odoo>

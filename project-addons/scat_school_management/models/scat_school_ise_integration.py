@@ -100,15 +100,15 @@ class ScatSchoolIseIntegration(models.Model):
             mandate.validate()
 
     @api.multi
-    def _try_write_vat(self, parent, country, child):
-        if child.NIFTITULAR:
+    def _try_write_vat(self, parent, country, vat):
+        if vat:
             try:
                 parent.write({'vat': (country and country.code or u"ES") +
-                              str(child.NIFTITULAR).replace("-", "")})
+                              str(vat).replace("-", "")})
             except Exception:
                 self.message_post(body=u"NIF %s no válido para el titular %s" %
                                   ((country and country.code or u"ES") +
-                                   str(child.NIFTITULAR).replace("-", ""),
+                                   str(vat).replace("-", ""),
                                    parent.name), message_type='notification')
         else:
             self.message_post(body=u"En el ISE no figura el nif para el "
@@ -170,6 +170,8 @@ class ScatSchoolIseIntegration(models.Model):
                          tools.ustr(child_data.NIVELEDUCATIVO))])[0]
             if child.course_id.id != course.id:
                 update_vals['course_id'] = course.id
+        if child.x_ise_estado != 'usuario':
+            update_vals['x_ise_estado'] = 'usuario'
         if update_vals:
             child.write(update_vals)
 
@@ -244,7 +246,7 @@ class ScatSchoolIseIntegration(models.Model):
                 with_context(force_company=exp.company_id.id).\
                 create(parent_vals)
             child.parent_id = parent.id
-            self._try_write_vat(parent, country, child_data)
+            self._try_write_vat(parent, country, child_data.NIFTITULAR)
 
         if child_data.CUENTABANCARIA:
             self._set_acc_number(parent, child_data, country, exp)
@@ -279,13 +281,14 @@ class ScatSchoolIseIntegration(models.Model):
             parent = self.env['res.partner'].\
                 with_context(force_company=exp.company_id.id).\
                 create(parent_vals)
-            self._try_write_vat(parent, country, child)
+            self._try_write_vat(parent, country, child.NIFTITULAR)
 
         if child.CUENTABANCARIA:
             self._set_acc_number(parent, child, country, exp)
 
         child_vals = {'x_ise_nie': child.NIE,
                       'x_ise_estado': 'usuario',
+                      'comensal_type': 'A',
                       'parent_id': parent.id,
                       'company_id': False,
                       'name': child.NOMBRE + u" " + child.APELLIDOS,
@@ -303,7 +306,7 @@ class ScatSchoolIseIntegration(models.Model):
         self._create_student_school(child_partner, child, school, exp)
 
     @api.multi
-    def action_ise_load_childs(self):
+    def action_ise_load_childs(self, init_date):
         self.ensure_one()
         ise_url = self.env['ir.config_parameter'].\
             get_param('ise.webservice.url')
@@ -333,7 +336,13 @@ class ScatSchoolIseIntegration(models.Model):
                                       (xml.ERROR, school.name,
                                        exp.display_name),
                                       message_type='comment')
-                for child in xml.ALUMNOS.ALUMNODTO[0]:
+                for child in xml.ALUMNOS.ALUMNODTO:
+                    if init_date:
+                        start_date = datetime.\
+                            strptime(str(child.FECHADESDESERVICIO),
+                                     '%d/%m/%Y').strftime('%Y-%m-%d')
+                        if start_date < init_date:
+                            continue
                     if child.ESTADO == 'USUARIO':
                         exists = self.env["res.partner"].\
                             search([('x_ise_nie', '=', child.NIE)])
@@ -343,11 +352,146 @@ class ScatSchoolIseIntegration(models.Model):
                             self.check_child_data(child, exists[0], school,
                                                   exp)
 
+    @api.multi
+    def create_new_professor(self, professor, school, exp):
+        pricelist_item = self._get_pricelist_item(professor)
+        if not pricelist_item:
+            self.fail = True
+            return
+        prof_vals = {'x_ise_nie': professor.DNI,
+                     'x_ise_estado': 'usuario',
+                     'is_company': True,
+                     'customer': True,
+                     'comensal_type': str(professor.ORIGEN),
+                     'company_id': False,
+                     'name': professor.NOMBRE + u" " + professor.APELLIDOS,
+                     'phone': professor.TELEFONO,
+                     'property_product_pricelist':
+                     pricelist_item.pricelist_id.id}
+        prof_partner = self.env['res.partner'].\
+            with_context(force_company=exp.company_id.id).create(prof_vals)
+        self._try_write_vat(prof_partner, False, professor.DNI)
+
+        self._create_student_school(prof_partner, professor, school, exp)
+
+    @api.multi
+    def check_professor_data(self, prof_data, professor, school, exp):
+        schools = self.env['scat.school.student'].\
+            search([('student_id', '=', professor.id),
+                    ('school_id', '=', school.id),
+                    ('start_date', '=', datetime.
+                     strptime(str(prof_data.FECHADESDESERVICIO),
+                              '%d/%m/%Y').strftime('%Y-%m-%d'))])
+        open_schools = professor.school_ids.filtered(lambda x: not x.end_date)
+        if not schools:
+            if open_schools:
+                open_schools.\
+                    write({'end_date':
+                           datetime.
+                           strptime(str(prof_data.FECHADESDESERVICIO),
+                                    '%d/%m/%Y').strftime('%Y-%m-%d')})
+                self.message_post(body=u"Se ha finalizado un colegio para el "
+                                       u"profesor %s por cambio de colegio o "
+                                       u"fechas. Revisad el control de "
+                                       u"presencia actual y cread el nuevo."
+                                       % professor.name,
+                                       message_type='comment')
+            self._create_student_school(professor, prof_data, school, exp)
+        elif prof_data.FECHAHASTASERVICIO and open_schools:
+            end_date = datetime.strptime(str(prof_data.FECHAHASTASERVICIO),
+                                         '%d/%m/%Y').strftime('%Y-%m-%d')
+            if end_date <= fields.Date.today():
+                open_schools.write({'end_date': end_date})
+
+        pricelist_item = self._get_pricelist_item(prof_data)
+        if not pricelist_item:
+            self.fail = True
+            return
+        professor_comp = self.env['res.partner'].\
+            with_context(force_company=exp.company_id.id).browse(professor.id)
+        if pricelist_item.pricelist_id.id != \
+                professor_comp.property_product_pricelist.id:
+            professor_comp.property_product_pricelist = \
+                pricelist_item.pricelist_id.id
+            self.message_post(body=u"Se ha actualizado la bonificación "
+                                   u"para el profesor %s desde el ISE, revisad"
+                                   u" su facturación."
+                                   % professor.name,
+                                   message_type='notification')
+        update_vals = {}
+        if professor.name != prof_data.NOMBRE + u" " + prof_data.APELLIDOS:
+            update_vals['name'] = prof_data.NOMBRE + u" " + prof_data.APELLIDOS
+        if professor.phone != prof_data.TELEFONO:
+            update_vals['phone'] = prof_data.TELEFONO
+        if professor.x_ise_estado != 'usuario':
+            update_vals['x_ise_estado'] = 'usuario'
+        if not professor.is_company:
+            update_vals['is_company'] = True
+        if professor.comensal_type != prof_data.ORIGEN:
+            update_vals['comensal_type'] = prof_data.ORIGEN
+        if update_vals:
+            professor.write(update_vals)
+
+    @api.multi
+    def action_ise_load_professors(self, init_date=False):
+        self.ensure_one()
+        ise_url = self.env['ir.config_parameter'].\
+            get_param('ise.webservice.url')
+        client = Client(ise_url)
+        token = client.service.loginISE(self.company_id.ise_login,
+                                        self.company_id.ise_password,
+                                        self.company_id.vat.replace("ES", ""))
+        if not token:
+            self.respose = u"Error de conexión"
+            return
+        self.token = token
+        expedients = self.env["scat.expediente"].search([('company_id', '=',
+                                                          self.company_id.id),
+                                                         ('state', '=',
+                                                          'open')])
+        for exp in expedients:
+            for school in exp.school_ids:
+                prof_data = client.service.infoDirectores(exp.n_expediente,
+                                                          exp.n_lote,
+                                                          school.code,
+                                                          token)
+                xml = objectify.fromstring(prof_data.encode('utf-8'))
+                if xml.ERROR:
+                    self.fail = True
+                    self.message_post(body=u"Error %s: procesando el colegio "
+                                      u"%s para el expediente %s." %
+                                      (xml.ERROR, school.name,
+                                       exp.display_name),
+                                      message_type='comment')
+                for professor in xml.COMENSALES.COMENSALDTO:
+                    if init_date:
+                        start_date = datetime.\
+                            strptime(str(professor.FECHADESDESERVICIO),
+                                     '%d/%m/%Y').strftime('%Y-%m-%d')
+                        if start_date < init_date:
+                            continue
+                    exists = self.env["res.partner"].\
+                        search([('x_ise_nie', '=', professor.DNI)])
+                    if not exists:
+                        self.create_new_professor(professor, school, exp)
+                    else:
+                        self.check_professor_data(professor, exists[0], school,
+                                                  exp)
+
     @api.model
-    def action_sync_children(self):
+    def action_sync_children(self, init_date=False):
         companies = self.env["res.company"].\
             search([('ise_login', '!=', False)])
         for company in companies:
             rec = self.create({'company_id': company.id,
                                'operation': "infoAlumnos"})
-            rec.action_ise_load_childs()
+            rec.action_ise_load_childs(init_date)
+
+    @api.model
+    def action_sync_professor(self, init_date=False):
+        companies = self.env["res.company"].\
+            search([('ise_login', '!=', False)])
+        for company in companies:
+            rec = self.create({'company_id': company.id,
+                               'operation': "infoDirectores"})
+            rec.action_ise_load_professors(init_date)
