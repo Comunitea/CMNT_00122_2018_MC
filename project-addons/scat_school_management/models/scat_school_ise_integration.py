@@ -389,7 +389,7 @@ class ScatSchoolIseIntegration(models.Model):
                                                         school.code,
                                                         token)
                 xml = objectify.fromstring(child_data.encode('utf-8'))
-                if xml.ERROR:
+                if xml.ERROR or not xml.ALUMNOS:
                     self.fail = True
                     self.message_post(body=u"Error %s: procesando el colegio "
                                       u"%s para el expediente %s." %
@@ -524,7 +524,7 @@ class ScatSchoolIseIntegration(models.Model):
                                                           school.code,
                                                           token)
                 xml = objectify.fromstring(prof_data.encode('utf-8'))
-                if xml.ERROR:
+                if xml.ERROR or not xml.COMENSALES:
                     self.fail = True
                     self.message_post(body=u"Error %s: procesando el colegio "
                                       u"%s para el expediente %s." %
