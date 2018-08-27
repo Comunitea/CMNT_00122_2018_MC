@@ -11,6 +11,8 @@
                     <group>
                         <field name="ise_login"/>
                         <field name="ise_password" password="True"/>
+                        <field name="ise_payment_mode_id"/>
+                        <field name="ise_fiscal_position_id"/>
                     </group>
                 </page>
             </notebook>

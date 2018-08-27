@@ -17,6 +17,9 @@ class ResPartner(models.Model):
     course_id = fields.Many2one('scat.course', 'Cursos')
     comensal_type = fields.Selection([('A', u'Alumno'), ('P', 'Profesor'),
                                       ('D', 'Director')], 'Tipo de comensal')
+    syga = fields.Boolean("SYGA")
+    not_modify_bank_data = fields.Boolean("No modificar los datos bancarios")
+    not_update_parent = fields.Boolean("No actualizar padre")
 
     @api.multi
     @api.depends('school_ids', 'school_ids.end_date')

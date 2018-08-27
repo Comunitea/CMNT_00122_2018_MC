@@ -155,6 +155,7 @@
         <field name="arch" type="xml">
             <tree string="Tipos de menús">
                 <field name="name"/>
+                <field name="conflict_allergens_ids"/>
             </tree>
         </field>
     </record>

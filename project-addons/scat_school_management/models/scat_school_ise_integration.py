@@ -11,6 +11,10 @@ class ResCompany(models.Model):
 
     ise_login = fields.Char("Usuario ISE")
     ise_password = fields.Char(u"Contraseña ISE")
+    ise_payment_mode_id = fields.Many2one("account.payment.mode",
+                                          "Modo de pago por defecto")
+    ise_fiscal_position_id = fields.Many2one("account.fiscal.position",
+                                             "Posición fiscal por defecto")
 
 
 class ScatSchoolIseIntegration(models.Model):
@@ -45,7 +49,7 @@ class ScatSchoolIseIntegration(models.Model):
         return pricelist_item
 
     @api.multi
-    def _get_parent_vals(self, child):
+    def _get_parent_vals(self, child, exp):
         return {'x_ise_estado': 'titular',
                 'is_company': True,
                 'company_id': False,
@@ -59,21 +63,25 @@ class ScatSchoolIseIntegration(models.Model):
                 self.env['res.better.zip'].
                 search([('name', '=', child.CP)])[0].state_id.id or False,
                 'x_ise_nie': child.NIFTITULAR,
+                'property_account_position_id':
+                exp.company_id.ise_fiscal_position_id.id,
+                'customer_payment_mode_id':
+                exp.company_id.ise_payment_mode_id.id,
                 'phone': child.TELEFONO,
                 'email': child.EMAIL,
                 'name': child.NOMBRETITULAR + u" " + child.APELLIDOSTITULAR}
 
     @api.multi
-    def _set_acc_number(self, parent, child_data, country, exp,
-                        cancel_on_change=False):
+    def _set_acc_number(self, parent, child_data, country, exp):
         acc_number = str(child_data.CUENTABANCARIA).replace("-", "")
         bank = self.env['res.partner.bank'].\
             search([('acc_number', '=', acc_number),
                     ('partner_id', '=', parent.id)])
         if not bank:
-            if cancel_on_change:
+            if not parent.not_modify_bank_data:
                 mandates = self.env['account.banking.mandate'].\
-                    search([('partner_id', '=', parent.id)])
+                    search([('partner_id', '=', parent.id),
+                            ('state', 'in', ['draft', 'valid'])])
                 if mandates:
                     mandates.cancel()
                     self.message_post(body=u"Se ha cancelado un mandato para "
@@ -84,7 +92,7 @@ class ScatSchoolIseIntegration(models.Model):
             bank_vals = {'acc_number': acc_number,
                          'partner_id': parent.id,
                          'company_id': False,
-                         'acc_country_id': country.id}
+                         'acc_country_id': country and country.id or False}
             bank = self.env['res.partner.bank'].create(bank_vals)
             bank._onchange_acc_number_l10n_es_partner()
             mandate = self.env['account.banking.mandate'].\
@@ -94,10 +102,19 @@ class ScatSchoolIseIntegration(models.Model):
                         'scheme': 'CORE',
                         'recurrent_sequence_type': 'recurring',
                         'type': 'recurrent',
-                        'signature_date':
+                        'signature_date': child_data.FECHADESDESERVICIO and
                         datetime.strptime(str(child_data.FECHADESDESERVICIO),
-                                          '%d/%m/%Y').strftime('%Y-%m-%d')})
+                                          '%d/%m/%Y').strftime('%Y-%m-%d')
+                        or fields.Date.today()})
             mandate.validate()
+            if parent.not_modify_bank_data:
+                self.message_post(body=u"Se iba a cancelar un mandato para la "
+                                       u"empresa %s por cambio de cuenta. "
+                                       u"Pero no se ha hecho por que no se "
+                                       u"permiten los cambios. La nueva cuenta"
+                                       u" sería %s." %
+                                       (parent.name, acc_number),
+                                  message_type='notification')
 
     @api.multi
     def _try_write_vat(self, parent, country, vat):
@@ -110,6 +127,7 @@ class ScatSchoolIseIntegration(models.Model):
                                   ((country and country.code or u"ES") +
                                    str(vat).replace("-", ""),
                                    parent.name), message_type='notification')
+                parent.vat = False
         else:
             self.message_post(body=u"En el ISE no figura el nif para el "
                                    u"titular %s" % parent.name,
@@ -118,25 +136,10 @@ class ScatSchoolIseIntegration(models.Model):
     @api.multi
     def _update_parent_data(self, parent, child_data, exp):
         update_vals = {}
-        if parent.street != child_data.DIRECCION:
-            update_vals['street'] = child_data.DIRECCION
-        if parent.zip != child_data.CP:
-            update_vals['zip'] = child_data.CP
-            update_vals['state_id'] = \
-                (child_data.CP and self.env['res.better.zip'].
-                 search([('name', '=', child_data.CP)])) and \
-                self.env['res.better.zip'].\
-                search([('name', '=', child_data.CP)])[0].state_id.id or False
-        if parent.city != child_data.MUNICIPIO:
-            update_vals['city'] = child_data.MUNICIPIO
-        if parent.phone != child_data.TELEFONO:
+        if not parent.phone:
             update_vals['phone'] = child_data.TELEFONO
-        if parent.email != child_data.EMAIL:
+        if not parent.email:
             update_vals['email'] = child_data.EMAIL
-        if parent.name != child_data.NOMBRETITULAR + u" " + \
-                child_data.APELLIDOSTITULAR:
-            update_vals['name'] = child_data.NOMBRETITULAR + u" " + \
-                child_data.APELLIDOSTITULAR
         if update_vals:
             parent.with_context(force_company=exp.company_id.id).\
                 write(update_vals)
@@ -159,9 +162,6 @@ class ScatSchoolIseIntegration(models.Model):
     @api.multi
     def _update_child_data(self, child, child_data):
         update_vals = {}
-        if child.name != child_data.NOMBRE + u" " + child_data.APELLIDOS:
-            update_vals['name'] = child_data.NOMBRE + u" " + \
-                child_data.APELLIDOS
         if child_data.NIVELEDUCATIVO and self.env['scat.course'].\
                 search([('name', 'ilike',
                          tools.ustr(child_data.NIVELEDUCATIVO))]):
@@ -170,38 +170,42 @@ class ScatSchoolIseIntegration(models.Model):
                          tools.ustr(child_data.NIVELEDUCATIVO))])[0]
             if child.course_id.id != course.id:
                 update_vals['course_id'] = course.id
-        if child.x_ise_estado != 'usuario':
-            update_vals['x_ise_estado'] = 'usuario'
+        if child.x_ise_estado != 'usuario' and \
+                child.x_ise_estado != str(child_data.ESTADO).lower():
+            update_vals['x_ise_estado'] = str(child_data.ESTADO).lower()
         if update_vals:
             child.write(update_vals)
 
     @api.multi
     def check_child_data(self, child_data, child, school, exp):
-        schools = self.env['scat.school.student'].\
-            search([('student_id', '=', child.id),
-                    ('school_id', '=', school.id),
-                    ('start_date', '=', datetime.
-                     strptime(str(child_data.FECHADESDESERVICIO),
-                              '%d/%m/%Y').strftime('%Y-%m-%d'))])
-        open_schools = child.school_ids.filtered(lambda x: not x.end_date)
-        if not schools:
-            if open_schools:
-                open_schools.\
-                    write({'end_date':
-                           datetime.
-                           strptime(str(child_data.FECHADESDESERVICIO),
-                                    '%d/%m/%Y').strftime('%Y-%m-%d')})
-                self.message_post(body=u"Se ha finalizado un colegio para el "
-                                       u"niño %s por cambio de colegio o "
-                                       u"fechas. Revisad el control de "
-                                       u"presencia actual y cread el nuevo."
-                                       % child.name, message_type='comment')
-            self._create_student_school(child, child_data, school, exp)
-        elif child_data.FECHAHASTASERVICIO and open_schools:
-            end_date = datetime.strptime(str(child_data.FECHAHASTASERVICIO),
-                                         '%d/%m/%Y').strftime('%Y-%m-%d')
-            if end_date <= fields.Date.today():
-                open_schools.write({'end_date': end_date})
+        if str(child_data.ESTADO) == 'USUARIO':
+            schools = self.env['scat.school.student'].\
+                search([('student_id', '=', child.id),
+                        ('school_id', '=', school.id),
+                        ('start_date', '=', datetime.
+                         strptime(str(child_data.FECHADESDESERVICIO),
+                                  '%d/%m/%Y').strftime('%Y-%m-%d'))])
+            open_schools = child.school_ids.filtered(lambda x: not x.end_date)
+            if not schools:
+                if open_schools:
+                    open_schools.\
+                        write({'end_date':
+                               datetime.
+                               strptime(str(child_data.FECHADESDESERVICIO),
+                                        '%d/%m/%Y').strftime('%Y-%m-%d')})
+                    self.message_post(body=u"Se ha finalizado un colegio para "
+                                           u"el niño %s por cambio de colegio "
+                                           u"o fechas. Revisad el control de "
+                                           u"presencia actual y cread el nuevo"
+                                           % child.name,
+                                      message_type='comment')
+                self._create_student_school(child, child_data, school, exp)
+            elif child_data.FECHAHASTASERVICIO and open_schools:
+                end_date = datetime.\
+                    strptime(str(child_data.FECHAHASTASERVICIO),
+                             '%d/%m/%Y').strftime('%Y-%m-%d')
+                if end_date <= fields.Date.today():
+                    open_schools.write({'end_date': end_date})
 
         pricelist_item = self._get_pricelist_item(child_data)
         if not pricelist_item:
@@ -210,46 +214,65 @@ class ScatSchoolIseIntegration(models.Model):
         if child_data.CUENTABANCARIA:
             country = self.env['res.country'].\
                 search([('code', '=', str(child_data.CUENTABANCARIA)[:2])],
-                       limit=1)[0]
+                       limit=1)
+            country = country and country[0] or False
         else:
             country = False
             self.message_post(body=u"La actualización del niño %s desde el ISE"
                                    u" viene sin cuenta bancaria."
-                                   % child.name, message_type='comment')
+                                   % child.name, message_type='notification')
+        if not child.not_update_parent:
+            if child_data.NIFTITULAR:
+                parent = self.env['res.partner'].\
+                    search([('x_ise_nie', '=', child_data.NIFTITULAR)])
+                if parent:
+                    if parent[0].id != child.parent_id.id:
+                        child.parent_id = parent[0].id
+                    parent = parent[0]
+                    self._update_parent_data(parent, child_data, exp)
+                    parent_comp = self.env['res.partner'].\
+                        with_context(force_company=exp.company_id.id).\
+                        browse(parent.id)
+                    if pricelist_item.pricelist_id.id != \
+                            parent_comp.property_product_pricelist.id:
+                        parent_comp.property_product_pricelist = \
+                            pricelist_item.pricelist_id.id
+                        self.\
+                            message_post(body=u"Se ha actualizado la "
+                                              u"bonificación para el niño %s "
+                                              u"desde el ISE, revisad su "
+                                              u"facturación."
+                                              % child.name,
+                                         message_type='notification')
+                else:
+                    parent_vals = self._get_parent_vals(child_data, exp)
+                    parent_vals['property_product_pricelist'] = \
+                        pricelist_item.pricelist_id.id
+                    parent_vals['country_id'] = country and country.id or False
+                    parent = self.env['res.partner'].\
+                        with_context(force_company=exp.company_id.id).\
+                        create(parent_vals)
+                    child.parent_id = parent.id
+                    self._try_write_vat(parent, country, child_data.NIFTITULAR)
 
-        parent = self.env['res.partner'].search([('x_ise_nie', '=',
-                                                  child_data.NIFTITULAR)])
-        if parent:
-            if parent[0].id != child.parent_id.id:
-                child.parent_id = parent[0].id
-            parent = parent[0]
-            self._update_parent_data(parent, child_data, exp)
-            if country and parent.country_id.id != country.id:
-                parent.country_id = country.id
-            parent_comp = self.env['res.partner'].\
-                with_context(force_company=exp.company_id.id).browse(parent.id)
-            if pricelist_item.pricelist_id.id != \
-                    parent_comp.property_product_pricelist.id:
-                parent_comp.property_product_pricelist = \
-                    pricelist_item.pricelist_id.id
-                self.message_post(body=u"Se ha actualizado la bonificación "
-                                       u"para el niño %s desde el ISE, revisad"
-                                       u" su facturación."
-                                       % child.name,
-                                       message_type='notification')
-        else:
-            parent_vals = self._get_parent_vals(child_data)
-            parent_vals['property_product_pricelist'] = \
-                pricelist_item.pricelist_id.id
-            parent_vals['country_id'] = country and country.id or False
-            parent = self.env['res.partner'].\
-                with_context(force_company=exp.company_id.id).\
-                create(parent_vals)
-            child.parent_id = parent.id
-            self._try_write_vat(parent, country, child_data.NIFTITULAR)
-
-        if child_data.CUENTABANCARIA:
-            self._set_acc_number(parent, child_data, country, exp)
+                if child_data.CUENTABANCARIA:
+                    self._set_acc_number(parent, child_data, country, exp)
+            else:
+                child_comp = self.env['res.partner'].\
+                    with_context(force_company=exp.company_id.id).\
+                    browse(child.id)
+                if pricelist_item.pricelist_id.id != \
+                        child_comp.property_product_pricelist.id:
+                    child_comp.property_product_pricelist = \
+                        pricelist_item.pricelist_id.id
+                    self.\
+                        message_post(body=u"Se ha actualizado la bonificación "
+                                          u"para el niño %s desde el ISE, "
+                                          u"revisad su facturación."
+                                          % child.name,
+                                     message_type='notification')
+                if child_data.CUENTABANCARIA:
+                    self._set_acc_number(child, child_data, country, exp)
         self._update_child_data(child, child_data)
 
     @api.multi
@@ -261,36 +284,43 @@ class ScatSchoolIseIntegration(models.Model):
         if child.CUENTABANCARIA:
             country = self.env['res.country'].\
                 search([('code', '=', str(child.CUENTABANCARIA)[:2])],
-                       limit=1)[0]
+                       limit=1)
+            country = country and country[0] or False
         else:
             country = False
             self.message_post(body=u"La creación del niño con NIE %s "
-                                   u"se está hacienod sin cuenta bancaria."
+                                   u"se está haciendo sin cuenta bancaria."
                                    % child.NIE, message_type='comment')
-        parent = self.env['res.partner'].search([('x_ise_nie', '=',
-                                                  child.NIFTITULAR)])
+        if child.NIFTITULAR:
+            parent = self.env['res.partner'].search([('x_ise_nie', '=',
+                                                      child.NIFTITULAR)])
 
-        if parent:
-            parent = parent[0]
-            self._update_parent_data(parent, child, exp)
-        else:
-            parent_vals = self._get_parent_vals(child)
-            parent_vals['property_product_pricelist'] = \
-                pricelist_item.pricelist_id.id
-            parent_vals['country_id'] = country and country.id or False
-            parent = self.env['res.partner'].\
-                with_context(force_company=exp.company_id.id).\
-                create(parent_vals)
-            self._try_write_vat(parent, country, child.NIFTITULAR)
+            if parent:
+                parent = parent[0]
+                self._update_parent_data(parent, child, exp)
+            else:
+                parent_vals = self._get_parent_vals(child, exp)
+                parent_vals['property_product_pricelist'] = \
+                    pricelist_item.pricelist_id.id
+                parent_vals['country_id'] = country and country.id or False
+                parent = self.env['res.partner'].\
+                    with_context(force_company=exp.company_id.id).\
+                    create(parent_vals)
+                self._try_write_vat(parent, country, child.NIFTITULAR)
 
-        if child.CUENTABANCARIA:
-            self._set_acc_number(parent, child, country, exp)
+            if child.CUENTABANCARIA:
+                self._set_acc_number(parent, child, country, exp)
 
         child_vals = {'x_ise_nie': child.NIE,
-                      'x_ise_estado': 'usuario',
+                      'x_ise_estado': str(child.ESTADO).lower(),
                       'comensal_type': 'A',
-                      'parent_id': parent.id,
                       'company_id': False,
+                      'y_ise_factura_aut': True,
+                      'y_ise_l': True,
+                      'y_ise_m': True,
+                      'y_ise_x': True,
+                      'y_ise_j': True,
+                      'y_ise_v': True,
                       'name': child.NOMBRE + u" " + child.APELLIDOS,
                       'course_id': (child.NIVELEDUCATIVO and
                                     self.env['scat.course'].
@@ -301,9 +331,39 @@ class ScatSchoolIseIntegration(models.Model):
                       search([('name', 'ilike',
                                tools.ustr(child.NIVELEDUCATIVO))])[0].id
                       or False}
-        child_partner = self.env['res.partner'].create(child_vals)
+        if child.NIFTITULAR:
+            child_vals['parent_id'] = parent.id
+        else:
+            child_vals.update({'street': child.DIRECCION,
+                               'zip': child.CP,
+                               'city': child.MUNICIPIO,
+                               'state_id':
+                               (child.CP and self.env['res.better.zip'].
+                                search([('name', '=', child.CP)])) and
+                               self.env['res.better.zip'].
+                               search([('name', '=', child.CP)])[0].
+                               state_id.id or False,
+                               'is_company': True,
+                               'customer': True,
+                               'phone': child.TELEFONO,
+                               'email': child.EMAIL,
+                               'property_account_position_id':
+                               exp.company_id.ise_fiscal_position_id.id,
+                               'customer_payment_mode_id':
+                               exp.company_id.ise_payment_mode_id.id,
+                               'property_product_pricelist':
+                               pricelist_item.pricelist_id.id,
+                               'country_id': country and country.id or False})
+        child_partner = self.env['res.partner'].\
+            with_context(force_company=exp.company_id.id).create(child_vals)
+        if not child.NIFTITULAR:
+            self._set_acc_number(child_partner, child, country, exp)
+        self.message_post(body=u"Se ha creado un nuevo niño %s con NIE %s."
+                               % (child_partner.name, child_partner.x_ise_nie),
+                          message_type='notification')
 
-        self._create_student_school(child_partner, child, school, exp)
+        if str(child.ESTADO) == 'USUARIO':
+            self._create_student_school(child_partner, child, school, exp)
 
     @api.multi
     def action_ise_load_childs(self, init_date):
@@ -337,20 +397,19 @@ class ScatSchoolIseIntegration(models.Model):
                                        exp.display_name),
                                       message_type='comment')
                 for child in xml.ALUMNOS.ALUMNODTO:
-                    if init_date:
+                    if init_date and child.FECHADESDESERVICIO:
                         start_date = datetime.\
                             strptime(str(child.FECHADESDESERVICIO),
                                      '%d/%m/%Y').strftime('%Y-%m-%d')
                         if start_date < init_date:
                             continue
-                    if child.ESTADO == 'USUARIO':
-                        exists = self.env["res.partner"].\
-                            search([('x_ise_nie', '=', child.NIE)])
-                        if not exists:
-                            self.create_new_child(child, school, exp)
-                        else:
-                            self.check_child_data(child, exists[0], school,
-                                                  exp)
+                    exists = self.env["res.partner"].\
+                        search([('x_ise_nie', '=', child.NIE)])
+                    if not exists:
+                        self.create_new_child(child, school, exp)
+                    else:
+                        self.check_child_data(child, exists[0], school,
+                                              exp)
 
     @api.multi
     def create_new_professor(self, professor, school, exp):
@@ -366,10 +425,23 @@ class ScatSchoolIseIntegration(models.Model):
                      'company_id': False,
                      'name': professor.NOMBRE + u" " + professor.APELLIDOS,
                      'phone': professor.TELEFONO,
+                     'y_ise_factura_aut': True,
+                     'y_ise_l': True,
+                     'y_ise_m': True,
+                     'y_ise_x': True,
+                     'y_ise_j': True,
+                     'y_ise_v': True,
+                     'property_account_position_id':
+                     exp.company_id.ise_fiscal_position_id.id,
+                     'customer_payment_mode_id':
+                     exp.company_id.ise_payment_mode_id.id,
                      'property_product_pricelist':
                      pricelist_item.pricelist_id.id}
         prof_partner = self.env['res.partner'].\
             with_context(force_company=exp.company_id.id).create(prof_vals)
+        self.message_post(body=u"Se ha creado un nuevo profesor %s con SNI %s."
+                               % (prof_partner.name, prof_partner.x_ise_nie),
+                          message_type='notification')
         self._try_write_vat(prof_partner, False, professor.DNI)
 
         self._create_student_school(prof_partner, professor, school, exp)
@@ -419,12 +491,8 @@ class ScatSchoolIseIntegration(models.Model):
                                    % professor.name,
                                    message_type='notification')
         update_vals = {}
-        if professor.name != prof_data.NOMBRE + u" " + prof_data.APELLIDOS:
-            update_vals['name'] = prof_data.NOMBRE + u" " + prof_data.APELLIDOS
-        if professor.phone != prof_data.TELEFONO:
+        if not professor.phone:
             update_vals['phone'] = prof_data.TELEFONO
-        if professor.x_ise_estado != 'usuario':
-            update_vals['x_ise_estado'] = 'usuario'
         if not professor.is_company:
             update_vals['is_company'] = True
         if professor.comensal_type != prof_data.ORIGEN:
