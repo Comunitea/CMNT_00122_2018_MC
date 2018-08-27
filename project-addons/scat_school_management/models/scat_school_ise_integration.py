@@ -396,20 +396,21 @@ class ScatSchoolIseIntegration(models.Model):
                                       (xml.ERROR, school.name,
                                        exp.display_name),
                                       message_type='comment')
-                for child in xml.ALUMNOS.ALUMNODTO:
-                    if init_date and child.FECHADESDESERVICIO:
-                        start_date = datetime.\
-                            strptime(str(child.FECHADESDESERVICIO),
-                                     '%d/%m/%Y').strftime('%Y-%m-%d')
-                        if start_date < init_date:
-                            continue
-                    exists = self.env["res.partner"].\
-                        search([('x_ise_nie', '=', child.NIE)])
-                    if not exists:
-                        self.create_new_child(child, school, exp)
-                    else:
-                        self.check_child_data(child, exists[0], school,
-                                              exp)
+                else:
+                    for child in xml.ALUMNOS.ALUMNODTO:
+                        if init_date and child.FECHADESDESERVICIO:
+                            start_date = datetime.\
+                                strptime(str(child.FECHADESDESERVICIO),
+                                         '%d/%m/%Y').strftime('%Y-%m-%d')
+                            if start_date < init_date:
+                                continue
+                        exists = self.env["res.partner"].\
+                            search([('x_ise_nie', '=', child.NIE)])
+                        if not exists:
+                            self.create_new_child(child, school, exp)
+                        else:
+                            self.check_child_data(child, exists[0], school,
+                                                  exp)
 
     @api.multi
     def create_new_professor(self, professor, school, exp):
@@ -531,20 +532,21 @@ class ScatSchoolIseIntegration(models.Model):
                                       (xml.ERROR, school.name,
                                        exp.display_name),
                                       message_type='comment')
-                for professor in xml.COMENSALES.COMENSALDTO:
-                    if init_date:
-                        start_date = datetime.\
-                            strptime(str(professor.FECHADESDESERVICIO),
-                                     '%d/%m/%Y').strftime('%Y-%m-%d')
-                        if start_date < init_date:
-                            continue
-                    exists = self.env["res.partner"].\
-                        search([('x_ise_nie', '=', professor.DNI)])
-                    if not exists:
-                        self.create_new_professor(professor, school, exp)
-                    else:
-                        self.check_professor_data(professor, exists[0], school,
-                                                  exp)
+                else:
+                    for professor in xml.COMENSALES.COMENSALDTO:
+                        if init_date:
+                            start_date = datetime.\
+                                strptime(str(professor.FECHADESDESERVICIO),
+                                         '%d/%m/%Y').strftime('%Y-%m-%d')
+                            if start_date < init_date:
+                                continue
+                        exists = self.env["res.partner"].\
+                            search([('x_ise_nie', '=', professor.DNI)])
+                        if not exists:
+                            self.create_new_professor(professor, school, exp)
+                        else:
+                            self.check_professor_data(professor, exists[0],
+                                                      school, exp)
 
     @api.model
     def action_sync_children(self, init_date=False):
