@@ -496,6 +496,8 @@ class ScatSchoolIseIntegration(models.Model):
             update_vals['phone'] = prof_data.TELEFONO
         if not professor.is_company:
             update_vals['is_company'] = True
+        if professor.x_ise_estado != 'usuario':
+            update_vals['x_ise_estado'] = 'usuario'
         if professor.comensal_type != prof_data.ORIGEN:
             update_vals['comensal_type'] = prof_data.ORIGEN
         if update_vals:
