@@ -37,4 +37,5 @@ class scat_school_student(models.Model):
             else:
                 res=self.search([('student_id', '=', school.student_id.id ),('id','!=',school.id), ('end_date', '>', school.start_date)])
                 if res:
-                    raise exceptions.ValidationError("Debe finalizar el colegio anterior de este alumno %s antes de la fecha de inicio actual %s" % (school.student_id.name,school.start_date))
+                    res.write({'end_date': school.start_date})
+                    #raise exceptions.ValidationError("Debe finalizar el colegio anterior de este alumno %s antes de la fecha de inicio actual %s" % (school.student_id.name,school.start_date))
