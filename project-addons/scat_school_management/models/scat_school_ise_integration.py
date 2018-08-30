@@ -71,7 +71,9 @@ class ScatSchoolIseIntegration(models.Model):
                 exp.company_id.ise_payment_mode_id.id,
                 'phone': child.TELEFONO,
                 'email': child.EMAIL,
-                'name': child.APELLIDOSTITULAR + u", " + child.NOMBRETITULAR}
+                'name': child.APELLIDOSTITULAR and
+                child.APELLIDOSTITULAR + u", " + child.NOMBRETITULAR or
+                child.NOMBRETITULAR}
 
     @api.multi
     def _set_acc_number(self, parent, child_data, country, exp):
@@ -226,7 +228,7 @@ class ScatSchoolIseIntegration(models.Model):
             country = False
 
         if not child.not_update_parent:
-            if child_data.NIFTITULAR:
+            if child_data.NIFTITULAR and child_data.NOMBRETITULAR:
                 parent = self.env['res.partner'].\
                     search([('x_ise_nie', '=', child_data.NIFTITULAR)])
                 if parent:
@@ -298,7 +300,7 @@ class ScatSchoolIseIntegration(models.Model):
         else:
             country = False
 
-        if child.NIFTITULAR:
+        if child.NIFTITULAR and child.NOMBRETITULAR:
             parent = self.env['res.partner'].search([('x_ise_nie', '=',
                                                       child.NIFTITULAR)])
 
@@ -464,7 +466,7 @@ class ScatSchoolIseIntegration(models.Model):
                      pricelist_item.pricelist_id.id}
         prof_partner = self.env['res.partner'].\
             with_context(force_company=exp.company_id.id).create(prof_vals)
-        self.message_post(body=u"Se ha creado un nuevo profesor %s con SNI %s."
+        self.message_post(body=u"Se ha creado un nuevo profesor %s con DNI %s."
                                % (prof_partner.name, prof_partner.x_ise_nie),
                           message_type='notification')
         self._try_write_vat(prof_partner, False, professor.DNI)
