@@ -26,6 +26,8 @@ class ScatSchoolIseIntegration(models.Model):
 
     call_date = fields.Datetime(u"Fecha de conexión", required=True,
                                 default=fields.Datetime.now)
+    end_date = fields.Datetime(u"Fecha de finalización",
+                               default=fields.Datetime.now)
     fail = fields.Boolean("Error")
     token = fields.Char("Token", readonly=True)
     operation = fields.Char(u"Operación", required=True)
@@ -69,7 +71,7 @@ class ScatSchoolIseIntegration(models.Model):
                 exp.company_id.ise_payment_mode_id.id,
                 'phone': child.TELEFONO,
                 'email': child.EMAIL,
-                'name': child.NOMBRETITULAR + u" " + child.APELLIDOSTITULAR}
+                'name': child.APELLIDOSTITULAR + u", " + child.NOMBRETITULAR}
 
     @api.multi
     def _set_acc_number(self, parent, child_data, country, exp):
@@ -86,8 +88,12 @@ class ScatSchoolIseIntegration(models.Model):
                     mandates.cancel()
                     self.message_post(body=u"Se ha cancelado un mandato para "
                                       u"empresa %s por cambio de cuenta. "
+                                      u"De %s a %s. "
                                       u"Revisad los efectos pendientes de "
-                                      u"remesar." % parent.name,
+                                      u"remesar." %
+                                      (parent.name,
+                                       mandates[0].partner_bank_id.acc_number,
+                                       acc_number),
                                       message_type='comment')
             bank_vals = {'acc_number': acc_number,
                          'partner_id': parent.id,
@@ -218,9 +224,7 @@ class ScatSchoolIseIntegration(models.Model):
             country = country and country[0] or False
         else:
             country = False
-            self.message_post(body=u"La actualización del niño %s desde el ISE"
-                                   u" viene sin cuenta bancaria."
-                                   % child.name, message_type='notification')
+
         if not child.not_update_parent:
             if child_data.NIFTITULAR:
                 parent = self.env['res.partner'].\
@@ -235,14 +239,17 @@ class ScatSchoolIseIntegration(models.Model):
                         browse(parent.id)
                     if pricelist_item.pricelist_id.id != \
                             parent_comp.property_product_pricelist.id:
+                        old_name = parent_comp.property_product_pricelist.name
                         parent_comp.property_product_pricelist = \
                             pricelist_item.pricelist_id.id
                         self.\
                             message_post(body=u"Se ha actualizado la "
                                               u"bonificación para el niño %s "
-                                              u"desde el ISE, revisad su "
-                                              u"facturación."
-                                              % child.name,
+                                              u"de %s a %s desde el ISE, "
+                                              u"revisad su facturación."
+                                              % (child.name, old_name,
+                                                 pricelist_item.pricelist_id.
+                                                 name),
                                          message_type='notification')
                 else:
                     parent_vals = self._get_parent_vals(child_data, exp)
@@ -263,13 +270,15 @@ class ScatSchoolIseIntegration(models.Model):
                     browse(child.id)
                 if pricelist_item.pricelist_id.id != \
                         child_comp.property_product_pricelist.id:
+                    old_name = child_comp.property_product_pricelist.name
                     child_comp.property_product_pricelist = \
                         pricelist_item.pricelist_id.id
                     self.\
                         message_post(body=u"Se ha actualizado la bonificación "
-                                          u"para el niño %s desde el ISE, "
-                                          u"revisad su facturación."
-                                          % child.name,
+                                          u"para el niño %s de %s a %s desde "
+                                          u"el ISE, revisad su facturación."
+                                          % (child.name, old_name,
+                                             pricelist_item.pricelist_id.name),
                                      message_type='notification')
                 if child_data.CUENTABANCARIA:
                     self._set_acc_number(child, child_data, country, exp)
@@ -288,9 +297,7 @@ class ScatSchoolIseIntegration(models.Model):
             country = country and country[0] or False
         else:
             country = False
-            self.message_post(body=u"La creación del niño con NIE %s "
-                                   u"se está haciendo sin cuenta bancaria."
-                                   % child.NIE, message_type='comment')
+
         if child.NIFTITULAR:
             parent = self.env['res.partner'].search([('x_ise_nie', '=',
                                                       child.NIFTITULAR)])
@@ -321,7 +328,7 @@ class ScatSchoolIseIntegration(models.Model):
                       'y_ise_x': True,
                       'y_ise_j': True,
                       'y_ise_v': True,
-                      'name': child.NOMBRE + u" " + child.APELLIDOS,
+                      'name': child.APELLIDOS + u", " + child.NOMBRE,
                       'course_id': (child.NIVELEDUCATIVO and
                                     self.env['scat.course'].
                                     search([('name', 'ilike',
@@ -366,14 +373,19 @@ class ScatSchoolIseIntegration(models.Model):
             self._create_student_school(child_partner, child, school, exp)
 
     @api.multi
+    def _login_ise(self, client):
+        token = client.service.loginISE(self.company_id.ise_login,
+                                        self.company_id.ise_password,
+                                        self.company_id.vat.replace("ES", ""))
+        return token
+
+    @api.multi
     def action_ise_load_childs(self, init_date):
         self.ensure_one()
         ise_url = self.env['ir.config_parameter'].\
             get_param('ise.webservice.url')
         client = Client(ise_url)
-        token = client.service.loginISE(self.company_id.ise_login,
-                                        self.company_id.ise_password,
-                                        self.company_id.vat.replace("ES", ""))
+        token = self._login_ise(client)
         if not token:
             self.respose = u"Error de conexión"
             return
@@ -389,13 +401,24 @@ class ScatSchoolIseIntegration(models.Model):
                                                         school.code,
                                                         token)
                 xml = objectify.fromstring(child_data.encode('utf-8'))
-                if xml.ERROR or not xml.ALUMNOS:
+                if xml.ERROR and "ERR-0" in str(xml.ERROR):
+                    token = self._login_ise(client)
+                    self.token = token
+                    child_data = client.service.\
+                        infoAlumnos(exp.n_expediente,
+                                    exp.n_lote,
+                                    school.code,
+                                    token)
+                    xml = objectify.fromstring(child_data.encode('utf-8'))
+                if xml.ERROR:
                     self.fail = True
                     self.message_post(body=u"Error %s: procesando el colegio "
                                       u"%s para el expediente %s." %
                                       (xml.ERROR, school.name,
                                        exp.display_name),
                                       message_type='comment')
+                elif not xml.ALUMNOS:
+                    continue
                 else:
                     for child in xml.ALUMNOS.ALUMNODTO:
                         if init_date and child.FECHADESDESERVICIO:
@@ -411,6 +434,7 @@ class ScatSchoolIseIntegration(models.Model):
                         else:
                             self.check_child_data(child, exists[0], school,
                                                   exp)
+        self.end_date = fields.Datetime.now()
 
     @api.multi
     def create_new_professor(self, professor, school, exp):
@@ -424,7 +448,7 @@ class ScatSchoolIseIntegration(models.Model):
                      'customer': True,
                      'comensal_type': str(professor.ORIGEN),
                      'company_id': False,
-                     'name': professor.NOMBRE + u" " + professor.APELLIDOS,
+                     'name': professor.APELLIDOS + u", " + professor.NOMBRE,
                      'phone': professor.TELEFONO,
                      'y_ise_factura_aut': True,
                      'y_ise_l': True,
@@ -484,12 +508,15 @@ class ScatSchoolIseIntegration(models.Model):
             with_context(force_company=exp.company_id.id).browse(professor.id)
         if pricelist_item.pricelist_id.id != \
                 professor_comp.property_product_pricelist.id:
+            old_name = professor_comp.property_product_pricelist.name
             professor_comp.property_product_pricelist = \
                 pricelist_item.pricelist_id.id
-            self.message_post(body=u"Se ha actualizado la bonificación "
-                                   u"para el profesor %s desde el ISE, revisad"
-                                   u" su facturación."
-                                   % professor.name,
+            self.message_post(body=u"Se ha actualizado la bonificación %s a %s"
+                                   u" para el profesor %s desde el ISE, "
+                                   u"revisad su facturación."
+                                   % (old_name,
+                                      pricelist_item.pricelist_id.name,
+                                      professor.name),
                                    message_type='notification')
         update_vals = {}
         if not professor.phone:
@@ -509,9 +536,7 @@ class ScatSchoolIseIntegration(models.Model):
         ise_url = self.env['ir.config_parameter'].\
             get_param('ise.webservice.url')
         client = Client(ise_url)
-        token = client.service.loginISE(self.company_id.ise_login,
-                                        self.company_id.ise_password,
-                                        self.company_id.vat.replace("ES", ""))
+        token = self._login_ise(client)
         if not token:
             self.respose = u"Error de conexión"
             return
@@ -527,13 +552,25 @@ class ScatSchoolIseIntegration(models.Model):
                                                           school.code,
                                                           token)
                 xml = objectify.fromstring(prof_data.encode('utf-8'))
-                if xml.ERROR or not xml.COMENSALES:
+                if xml.ERROR and "ERR-0" in str(xml.ERROR):
+                    token = self._login_ise(client)
+                    self.token = token
+                    prof_data = client.service.\
+                        infoDirectores(exp.n_expediente,
+                                       exp.n_lote,
+                                       school.code,
+                                       token)
+                    xml = objectify.fromstring(prof_data.encode('utf-8'))
+                if xml.ERROR:
                     self.fail = True
-                    self.message_post(body=u"Error %s: procesando el colegio "
-                                      u"%s para el expediente %s." %
+                    self.message_post(body=u"Error %s: procesando el "
+                                           u"colegio %s para el "
+                                           u"expediente %s." %
                                       (xml.ERROR, school.name,
                                        exp.display_name),
                                       message_type='comment')
+                elif not xml.COMENSALES:
+                    continue
                 else:
                     for professor in xml.COMENSALES.COMENSALDTO:
                         if init_date:
@@ -549,6 +586,7 @@ class ScatSchoolIseIntegration(models.Model):
                         else:
                             self.check_professor_data(professor, exists[0],
                                                       school, exp)
+        self.end_date = fields.Datetime.now()
 
     @api.model
     def action_sync_children(self, init_date=False):

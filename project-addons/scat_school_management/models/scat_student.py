@@ -246,9 +246,12 @@ class scat_student(models.Model):
         return super(scat_student, self)._write(vals)
 
     @api.model
-    def get_next_month(self):
-        today = datetime.now()
-        today = today+relativedelta(months=1)
+    def get_next_month(self, start_date=False):
+        if not start_date:
+            today = datetime.now()
+            today = today+relativedelta(months=1)
+        else:
+            today = datetime.strptime(start_date, '%Y-%m-%d')
         last_day = calendar.monthrange(today.year, today.month)[1]
         first_day = datetime(today.year, today.month, 1)
         last_date = datetime(today.year, today.month, last_day)

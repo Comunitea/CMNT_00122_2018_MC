@@ -9,6 +9,7 @@
                 <field name="call_date"/>
                 <field name="operation"/>
                 <field name="fail"/>
+                <field name="end_date"/>
             </tree>
         </field>
     </record>
@@ -17,10 +18,11 @@
         <field name="name">scat.school.ise.integration.form</field>
         <field name="model">scat.school.ise.integration</field>
         <field name="arch" type="xml">
-            <form string="Log ISE" create="0">>
+            <form string="Log ISE" create="0">
                 <sheet>
                     <group>
                         <field name="call_date"/>
+                        <field name="end_date"/>
                         <field name="operation" />
                         <field name="fail"/>
                         <field name="company_id"/>
