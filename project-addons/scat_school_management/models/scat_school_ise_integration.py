@@ -72,7 +72,7 @@ class ScatSchoolIseIntegration(models.Model):
                 'phone': child.TELEFONO,
                 'email': child.EMAIL,
                 'name': child.APELLIDOSTITULAR and
-                child.APELLIDOSTITULAR + u", " + child.NOMBRETITULAR or
+                tools.ustr(child.APELLIDOSTITULAR) + u", " + child.NOMBRETITULAR or
                 child.NOMBRETITULAR}
 
     @api.multi
@@ -330,7 +330,7 @@ class ScatSchoolIseIntegration(models.Model):
                       'y_ise_x': True,
                       'y_ise_j': True,
                       'y_ise_v': True,
-                      'name': child.APELLIDOS + u", " + child.NOMBRE,
+                      'name': tools.ustr(child.APELLIDOS) + u", " + child.NOMBRE,
                       'course_id': (child.NIVELEDUCATIVO and
                                     self.env['scat.course'].
                                     search([('name', 'ilike',
