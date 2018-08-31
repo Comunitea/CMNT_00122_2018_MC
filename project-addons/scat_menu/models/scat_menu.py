@@ -125,7 +125,7 @@ class ScatMenuRotative(models.Model):
         for rotative in self:
             last_menu = self.env['scat.menu'].\
                 search([('rotative_line_id', 'in',
-                         self.line_ids.ids)], limit=1)
+                         rotative.line_ids.ids)], limit=1)
             if last_menu:
                 rotative.last_created_menu_id = last_menu.id
                 rotative.last_created_menu_sequence = \

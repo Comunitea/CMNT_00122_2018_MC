@@ -30,7 +30,7 @@
         <field name="arch" type="xml">
             <field name="partner_id" position="after">
                 <field name="warehouse_id"/>
-                <field name="rotative_menu_id"/>
+                <field name="rotative_menu_ids" widget="many2many_tags"/>
             </field>
         </field>
     </record>

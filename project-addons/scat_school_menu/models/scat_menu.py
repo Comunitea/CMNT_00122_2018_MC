@@ -29,8 +29,8 @@ class ScatMenu(models.Model):
         new_procs = self.env['procurement.order']
         for menu in self:
             schools = self.env['scat.school'].\
-                search([('rotative_menu_id', '=',
-                         menu.rotative_line_id.rotative_id.id)])
+                search([('rotative_menu_ids', 'in',
+                         [menu.rotative_line_id.rotative_id.id])])
             dt = datetime.strptime(menu.date, "%Y-%m-%d")
             for school in schools:
                 active_expedients = school.expedient_ids.\
