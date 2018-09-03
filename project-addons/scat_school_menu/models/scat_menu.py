@@ -109,8 +109,11 @@ class ScatMenu(models.Model):
         new_procs.run()
 
     @api.model
-    def action_create_pickings_run(self, weeks=4):
-        today = datetime.now()
+    def action_create_pickings_run(self, weeks=4, start_date=False):
+        if not start_date:
+            today = datetime.now()
+        else:
+            today = datetime.strptime(start_date, '%Y-%m-%d')
         next_month = today + relativedelta(weeks=weeks)
         menus = self.search([('state', '=', 'confirmed'),
                              ('date', '<=',

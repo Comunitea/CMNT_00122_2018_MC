@@ -146,7 +146,7 @@ class ScatMenuRotative(models.Model):
         return list(lista_festivos)
 
     @api.model
-    def _generate_menus(self):
+    def _generate_menus(self, weeks=4, start_date=False):
         def next_sequence():
             line = self.env['scat.menu.rotative.line'].\
                 search([('sequence', '>', last_sequence),
@@ -158,8 +158,11 @@ class ScatMenuRotative(models.Model):
                     search([('rotative_id', '=', rotative.id)], limit=1)
                 return line
 
-        today = datetime.now()
-        next_month = today + relativedelta(months=1)
+        if not start_date:
+            today = datetime.now()
+        else:
+            today = datetime.strptime(start_date, '%Y-%m-%d')
+        next_month = today + relativedelta(weeks=weeks)
         rotatives = self.search([('state', '=', 'open'),
                                  ('start_date', '<=',
                                   next_month.strftime("%Y-%m-%d")),
