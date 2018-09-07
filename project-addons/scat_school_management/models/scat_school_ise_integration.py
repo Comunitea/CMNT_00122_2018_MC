@@ -72,8 +72,8 @@ class ScatSchoolIseIntegration(models.Model):
                 'phone': child.TELEFONO,
                 'email': child.EMAIL,
                 'name': child.APELLIDOSTITULAR and
-                tools.ustr(child.APELLIDOSTITULAR) + u", " + child.NOMBRETITULAR or
-                child.NOMBRETITULAR}
+                tools.ustr(child.APELLIDOSTITULAR) + u", " +
+                child.NOMBRETITULAR or child.NOMBRETITULAR}
 
     @api.multi
     def _set_acc_number(self, parent, child_data, country, exp):
@@ -103,6 +103,15 @@ class ScatSchoolIseIntegration(models.Model):
                          'acc_country_id': country and country.id or False}
             bank = self.env['res.partner.bank'].create(bank_vals)
             bank._onchange_acc_number_l10n_es_partner()
+            today = fields.Date.today()
+            if child_data.FECHADESDESERVICIO:
+                start_date = datetime.\
+                    strptime(str(child_data.FECHADESDESERVICIO),
+                             '%d/%m/%Y').strftime('%Y-%m-%d')
+                if start_date > today:
+                    start_date = today
+            else:
+                start_date = today
             mandate = self.env['account.banking.mandate'].\
                 create({'company_id': exp.company_id.id,
                         'format': 'sepa',
@@ -110,10 +119,7 @@ class ScatSchoolIseIntegration(models.Model):
                         'scheme': 'CORE',
                         'recurrent_sequence_type': 'recurring',
                         'type': 'recurrent',
-                        'signature_date': child_data.FECHADESDESERVICIO and
-                        datetime.strptime(str(child_data.FECHADESDESERVICIO),
-                                          '%d/%m/%Y').strftime('%Y-%m-%d')
-                        or fields.Date.today()})
+                        'signature_date': start_date})
             mandate.validate()
             if parent.not_modify_bank_data:
                 self.message_post(body=u"Se iba a cancelar un mandato para la "
@@ -153,10 +159,9 @@ class ScatSchoolIseIntegration(models.Model):
                 write(update_vals)
 
     @api.multi
-    def _create_student_school(self, child, child_data, school, exp):
-        school_vals = {'start_date':
-                       datetime.strptime(str(child_data.FECHADESDESERVICIO),
-                                         '%d/%m/%Y').strftime('%Y-%m-%d'),
+    def _create_student_school(self, child, child_data, school, exp,
+                               start_date):
+        school_vals = {'start_date': start_date,
                        'school_id': school.id,
                        'company_name': exp.company_id.name,
                        'student_id': child.id}
@@ -178,42 +183,44 @@ class ScatSchoolIseIntegration(models.Model):
                          tools.ustr(child_data.NIVELEDUCATIVO))])[0]
             if child.course_id.id != course.id:
                 update_vals['course_id'] = course.id
-        if child.x_ise_estado != 'usuario' and \
-                child.x_ise_estado != str(child_data.ESTADO).lower():
+        if child.x_ise_estado != str(child_data.ESTADO).lower():
             update_vals['x_ise_estado'] = str(child_data.ESTADO).lower()
         if update_vals:
             child.write(update_vals)
 
     @api.multi
     def check_child_data(self, child_data, child, school, exp):
-        if str(child_data.ESTADO) == 'USUARIO':
-            schools = self.env['scat.school.student'].\
-                search([('student_id', '=', child.id),
-                        ('school_id', '=', school.id),
-                        ('start_date', '=', datetime.
-                         strptime(str(child_data.FECHADESDESERVICIO),
-                                  '%d/%m/%Y').strftime('%Y-%m-%d'))])
-            open_schools = child.school_ids.filtered(lambda x: not x.end_date)
-            if not schools:
-                if open_schools:
-                    open_schools.\
-                        write({'end_date':
-                               datetime.
-                               strptime(str(child_data.FECHADESDESERVICIO),
-                                        '%d/%m/%Y').strftime('%Y-%m-%d')})
-                    self.message_post(body=u"Se ha finalizado un colegio para "
-                                           u"el niño %s por cambio de colegio "
-                                           u"o fechas. Revisad el control de "
-                                           u"presencia actual y cread el nuevo"
-                                           % child.name,
-                                      message_type='comment')
-                self._create_student_school(child, child_data, school, exp)
-            elif child_data.FECHAHASTASERVICIO and open_schools:
-                end_date = datetime.\
-                    strptime(str(child_data.FECHAHASTASERVICIO),
-                             '%d/%m/%Y').strftime('%Y-%m-%d')
-                if end_date <= fields.Date.today():
-                    open_schools.write({'end_date': end_date})
+        if child_data.FECHADESDESERVICIO:
+            start_date = datetime.\
+                strptime(str(child_data.FECHADESDESERVICIO),
+                         '%d/%m/%Y').strftime('%Y-%m-%d')
+        else:
+            start_date = datetime.\
+                strptime(str(child_data.FECHADESDEMATRICULA),
+                         '%d/%m/%Y').strftime('%Y-%m-%d')
+        schools = self.env['scat.school.student'].\
+            search([('student_id', '=', child.id),
+                    ('school_id', '=', school.id),
+                    ('start_date', '=', start_date)])
+        open_schools = child.school_ids.filtered(lambda x: not x.end_date)
+        if not schools:
+            if open_schools:
+                open_schools.\
+                    write({'end_date': start_date})
+                self.message_post(body=u"Se ha finalizado un colegio para "
+                                       u"el niño %s por cambio de colegio "
+                                       u"o fechas. Revisad el control de "
+                                       u"presencia actual y cread el nuevo"
+                                       % child.name,
+                                  message_type='comment')
+            self._create_student_school(child, child_data, school, exp,
+                                        start_date)
+        elif child_data.FECHAHASTASERVICIO and open_schools:
+            end_date = datetime.\
+                strptime(str(child_data.FECHAHASTASERVICIO),
+                         '%d/%m/%Y').strftime('%Y-%m-%d')
+            if end_date <= fields.Date.today():
+                open_schools.write({'end_date': end_date})
 
         pricelist_item = self._get_pricelist_item(child_data)
         if not pricelist_item:
@@ -330,7 +337,8 @@ class ScatSchoolIseIntegration(models.Model):
                       'y_ise_x': True,
                       'y_ise_j': True,
                       'y_ise_v': True,
-                      'name': tools.ustr(child.APELLIDOS) + u", " + child.NOMBRE,
+                      'name': tools.ustr(child.APELLIDOS) + u", " +
+                      child.NOMBRE,
                       'course_id': (child.NIVELEDUCATIVO and
                                     self.env['scat.course'].
                                     search([('name', 'ilike',
@@ -371,8 +379,16 @@ class ScatSchoolIseIntegration(models.Model):
                                % (child_partner.name, child_partner.x_ise_nie),
                           message_type='notification')
 
-        if str(child.ESTADO) == 'USUARIO':
-            self._create_student_school(child_partner, child, school, exp)
+        if child.FECHADESDESERVICIO:
+            start_date = datetime.\
+                strptime(str(child.FECHADESDESERVICIO),
+                         '%d/%m/%Y').strftime('%Y-%m-%d')
+        else:
+            start_date = datetime.\
+                strptime(str(child.FECHADESDEMATRICULA),
+                         '%d/%m/%Y').strftime('%Y-%m-%d')
+        self._create_student_school(child_partner, child, school, exp,
+                                    start_date)
 
     @api.multi
     def _login_ise(self, client):
@@ -398,6 +414,7 @@ class ScatSchoolIseIntegration(models.Model):
                                                           'open')])
         for exp in expedients:
             for school in exp.school_ids:
+                cont = created = updated = 0
                 child_data = client.service.infoAlumnos(exp.n_expediente,
                                                         exp.n_lote,
                                                         school.code,
@@ -420,6 +437,10 @@ class ScatSchoolIseIntegration(models.Model):
                                        exp.display_name),
                                       message_type='comment')
                 elif not xml.ALUMNOS:
+                    self.message_post(body=u"No se han encontrado niños "
+                                           u"para el colegio %s." %
+                                      school.name,
+                                      message_type='comment')
                     continue
                 else:
                     for child in xml.ALUMNOS.ALUMNODTO:
@@ -429,13 +450,21 @@ class ScatSchoolIseIntegration(models.Model):
                                          '%d/%m/%Y').strftime('%Y-%m-%d')
                             if start_date < init_date:
                                 continue
+                        cont += 1
                         exists = self.env["res.partner"].\
                             search([('x_ise_nie', '=', child.NIE)])
                         if not exists:
                             self.create_new_child(child, school, exp)
+                            created += 1
                         else:
                             self.check_child_data(child, exists[0], school,
                                                   exp)
+                            updated += 1
+                    self.message_post(body=u"Para el colegio %s se han leído "
+                                           u"%s niños, %s se han creado y"
+                                           u" %s se han actualizado." %
+                                      (school.name, cont, created, updated),
+                                      message_type='comment')
         self.end_date = fields.Datetime.now()
 
     @api.multi
@@ -470,32 +499,34 @@ class ScatSchoolIseIntegration(models.Model):
                                % (prof_partner.name, prof_partner.x_ise_nie),
                           message_type='notification')
         self._try_write_vat(prof_partner, False, professor.DNI)
-
-        self._create_student_school(prof_partner, professor, school, exp)
+        start_date = datetime.\
+            strptime(str(professor.FECHADESDESERVICIO),
+                     '%d/%m/%Y').strftime('%Y-%m-%d')
+        self._create_student_school(prof_partner, professor, school, exp,
+                                    start_date)
 
     @api.multi
     def check_professor_data(self, prof_data, professor, school, exp):
+        start_date = datetime.\
+            strptime(str(prof_data.FECHADESDESERVICIO),
+                     '%d/%m/%Y').strftime('%Y-%m-%d')
         schools = self.env['scat.school.student'].\
             search([('student_id', '=', professor.id),
                     ('school_id', '=', school.id),
-                    ('start_date', '=', datetime.
-                     strptime(str(prof_data.FECHADESDESERVICIO),
-                              '%d/%m/%Y').strftime('%Y-%m-%d'))])
+                    ('start_date', '=', start_date)])
         open_schools = professor.school_ids.filtered(lambda x: not x.end_date)
         if not schools:
             if open_schools:
                 open_schools.\
-                    write({'end_date':
-                           datetime.
-                           strptime(str(prof_data.FECHADESDESERVICIO),
-                                    '%d/%m/%Y').strftime('%Y-%m-%d')})
+                    write({'end_date': start_date})
                 self.message_post(body=u"Se ha finalizado un colegio para el "
                                        u"profesor %s por cambio de colegio o "
                                        u"fechas. Revisad el control de "
                                        u"presencia actual y cread el nuevo."
                                        % professor.name,
                                        message_type='comment')
-            self._create_student_school(professor, prof_data, school, exp)
+            self._create_student_school(professor, prof_data, school, exp,
+                                        start_date)
         elif prof_data.FECHAHASTASERVICIO and open_schools:
             end_date = datetime.strptime(str(prof_data.FECHAHASTASERVICIO),
                                          '%d/%m/%Y').strftime('%Y-%m-%d')
@@ -549,6 +580,7 @@ class ScatSchoolIseIntegration(models.Model):
                                                           'open')])
         for exp in expedients:
             for school in exp.school_ids:
+                cont = created = updated = 0
                 prof_data = client.service.infoDirectores(exp.n_expediente,
                                                           exp.n_lote,
                                                           school.code,
@@ -572,6 +604,10 @@ class ScatSchoolIseIntegration(models.Model):
                                        exp.display_name),
                                       message_type='comment')
                 elif not xml.COMENSALES:
+                    self.message_post(body=u"No se han encontrado profesores "
+                                           u"para el colegio %s." %
+                                      school.name,
+                                      message_type='comment')
                     continue
                 else:
                     for professor in xml.COMENSALES.COMENSALDTO:
@@ -581,13 +617,21 @@ class ScatSchoolIseIntegration(models.Model):
                                          '%d/%m/%Y').strftime('%Y-%m-%d')
                             if start_date < init_date:
                                 continue
+                        cont += 1
                         exists = self.env["res.partner"].\
                             search([('x_ise_nie', '=', professor.DNI)])
                         if not exists:
                             self.create_new_professor(professor, school, exp)
+                            created += 1
                         else:
                             self.check_professor_data(professor, exists[0],
                                                       school, exp)
+                            updated += 1
+                    self.message_post(body=u"Para el colegio %s se han leído "
+                                           u"%s profesores, %s se han creado y"
+                                           u" %s se han actualizado." %
+                                      (school.name, cont, created, updated),
+                                      message_type='comment')
         self.end_date = fields.Datetime.now()
 
     @api.model
