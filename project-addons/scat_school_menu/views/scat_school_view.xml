@@ -8,6 +8,7 @@
         <field name="arch" type="xml">
             <field name="state_id" position="after">
                 <field name="warehouse_id"/>
+                 <field name="rotative_menu_ids"/>
             </field>
         </field>
     </record>
