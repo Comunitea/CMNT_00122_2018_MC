@@ -33,8 +33,8 @@ class ResPartner(models.Model):
     def action_view_ticado(self, first_day, student):
         student.ensure_one()
 
-        if not student.active_school_id or student.x_ise_estado != "usuario" \
-                or not student.parent_id or \
+        if not student.active_school_id or student.x_ise_estado not in \
+                ["usuario", "admitido"] or \
                 (not student.y_ise_factura_aut and not student.y_ise_m and
                  not student.y_ise_j and not student.y_ise_l
                  and not student.y_ise_x and not student.y_ise_s

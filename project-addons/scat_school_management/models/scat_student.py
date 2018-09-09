@@ -281,8 +281,8 @@ class scat_student(models.Model):
 
                 for student_seleccionado in self.env['res.partner'].\
                     search([('active_school_id', '=', school.id),
-                            ('x_ise_estado', '=', 'usuario'),
-                            ('parent_id', '!=', False), '|', '|', '|', '|',
+                            ('x_ise_estado', 'in', ['usuario', 'admitido']),
+                            '|', '|', '|', '|',
                             '|', '|', ('y_ise_factura_aut', '=', True),
                             ('y_ise_l', '=', True),
                             ('y_ise_m', '=', True), ('y_ise_x', '=', True),
@@ -303,7 +303,8 @@ class scat_student(models.Model):
     def control_presencia(self, student_seleccionado, school, first_day,
                           last_day, today, last_date, dias_festivos, vals,
                           codes):
-        if student_seleccionado.y_ise_s:
+        if student_seleccionado.y_ise_s or \
+                student_seleccionado.x_ise_estado == 'admitido':
             self.create(vals)
 
         else:
