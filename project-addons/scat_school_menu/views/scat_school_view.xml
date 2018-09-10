@@ -8,7 +8,7 @@
         <field name="arch" type="xml">
             <field name="state_id" position="after">
                 <field name="warehouse_id"/>
-                 <field name="rotative_menu_ids"/>
+                 <field name="rotative_menu_ids" groups="mrp.group_mrp_user"/>
             </field>
         </field>
     </record>
@@ -31,7 +31,7 @@
         <field name="arch" type="xml">
             <field name="partner_id" position="after">
                 <field name="warehouse_id"/>
-                <field name="rotative_menu_ids" widget="many2many_tags"/>
+                <field name="rotative_menu_ids" widget="many2many_tags" groups="mrp.group_mrp_user"/>
             </field>
         </field>
     </record>

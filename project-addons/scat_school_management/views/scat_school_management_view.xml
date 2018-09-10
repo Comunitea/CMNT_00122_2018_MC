@@ -69,7 +69,7 @@
 
     <menuitem id="scat_student_menu" name="Control de presencia" action="scat_student_list_action" parent="main_scat_school_management" sequence="2"/>
 
-    <menuitem id="m_configuration" name="Configuración" parent="main_scat_school_management" sequence="10"/>
+    <menuitem id="m_configuration" name="Configuración" parent="main_scat_school_management" sequence="10" groups="group_scat_school_management_manager"/>
 
     <menuitem id="submenu_scat_expediente" name="Expediente" action="scat_expediente" parent="m_configuration" sequence="1"/>
 

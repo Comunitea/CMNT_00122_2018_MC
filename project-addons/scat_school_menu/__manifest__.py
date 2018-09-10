@@ -14,7 +14,9 @@
              'views/scat_course_view.xml',
              'views/scat_menu_view.xml',
              'data/scat_school_menu_data.xml',
-             'views/mrp_view.xml'],
+             'views/mrp_view.xml',
+             'views/res_users_view.xml',
+             'security/scat_school_menu_security.xml'],
     'installable': True,
     'auto_install': False,
 }

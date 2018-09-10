@@ -15,7 +15,7 @@
         </field>
     </record>
 
-    <menuitem id="main_scat_menu_management" name="Gestión de menús"/>
+    <menuitem id="main_scat_menu_management" name="Gestión de menús" groups="mrp.group_mrp_user"/>
 
     <record model="ir.ui.view" id="scat_menu_tree_view">
         <field name="name">scat.menu.tree</field>

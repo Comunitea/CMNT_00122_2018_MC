@@ -80,7 +80,7 @@
                     <field name="dia31_code" invisible="1"/>
                     <field name="total_ise"/>
                     <field name="total_child"/>
-                    <field name="invoice_id"/>
+                    <field name="invoice_id" groups="scat_school_management.group_scat_school_management_manager"/>
                 </tree>
             </field>
     </record>
@@ -130,7 +130,7 @@
                         <field name="dia31"/>
                         <field name="total_ise"/>
                         <field name="total_child"/>
-                        <field name="invoice_id"/>
+                        <field name="invoice_id" groups="scat_school_management.group_scat_school_management_manager"/>
                     </group>
                 </sheet>
             </form>
