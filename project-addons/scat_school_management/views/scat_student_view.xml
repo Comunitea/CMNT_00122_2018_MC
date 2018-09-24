@@ -12,6 +12,7 @@
             <field name="model">scat.student</field>
             <field name="arch" type="xml">
                 <tree string="Control de presencia" editable='top'>
+                    <field name="student_name"/>
                     <field name="student_id"/>
                     <field name="school_id"/>
                     <field name="month"/>

@@ -203,18 +203,27 @@ class ScatSchoolIseIntegration(models.Model):
                     ('school_id', '=', school.id),
                     ('start_date', '=', start_date)])
         open_schools = child.school_ids.filtered(lambda x: not x.end_date)
+        send = False
         if not schools:
             if open_schools:
-                open_schools.\
-                    write({'end_date': start_date})
-                self.message_post(body=u"Se ha finalizado un colegio para "
-                                       u"el niño %s por cambio de colegio "
-                                       u"o fechas. Revisad el control de "
-                                       u"presencia actual y cread el nuevo"
-                                       % child.name,
-                                  message_type='comment')
-            self._create_student_school(child, child_data, school, exp,
-                                        start_date)
+                for oschool in open_schools:
+                    if oschool.school_id.id != school.id or \
+                            not child.not_update_date:
+                        oschool.write({'end_date': start_date})
+                        if not send:
+                            self.\
+                                message_post(body=u"Se ha finalizado un "
+                                                  u"colegio para el niño %s "
+                                                  u"por cambio de colegio "
+                                                  u"o fechas. Revisad el "
+                                                  u"control de presencia "
+                                                  u"actual y cread el nuevo"
+                                                  % child.name,
+                                             message_type='comment')
+                            send = True
+            if not open_schools or send:
+                self._create_student_school(child, child_data, school, exp,
+                                            start_date)
         elif child_data.FECHAHASTASERVICIO and open_schools:
             end_date = datetime.\
                 strptime(str(child_data.FECHAHASTASERVICIO),
@@ -515,18 +524,27 @@ class ScatSchoolIseIntegration(models.Model):
                     ('school_id', '=', school.id),
                     ('start_date', '=', start_date)])
         open_schools = professor.school_ids.filtered(lambda x: not x.end_date)
+        send = False
         if not schools:
             if open_schools:
-                open_schools.\
-                    write({'end_date': start_date})
-                self.message_post(body=u"Se ha finalizado un colegio para el "
-                                       u"profesor %s por cambio de colegio o "
-                                       u"fechas. Revisad el control de "
-                                       u"presencia actual y cread el nuevo."
-                                       % professor.name,
-                                       message_type='comment')
-            self._create_student_school(professor, prof_data, school, exp,
-                                        start_date)
+                for oschool in open_schools:
+                    if oschool.school_id.id != school.id or \
+                            not professor.not_update_date:
+                        oschool.write({'end_date': start_date})
+                        if not send:
+                            self.\
+                                message_post(body=u"Se ha finalizado un "
+                                                  u"colegio para el profesor "
+                                                  u"%s por cambio de colegio "
+                                                  u"o fechas. Revisad el "
+                                                  u"control de presencia "
+                                                  u"actual y cread el nuevo"
+                                                  % professor.name,
+                                             message_type='comment')
+                            send = True
+            if not open_schools or send:
+                self._create_student_school(professor, prof_data, school, exp,
+                                            start_date)
         elif prof_data.FECHAHASTASERVICIO and open_schools:
             end_date = datetime.strptime(str(prof_data.FECHAHASTASERVICIO),
                                          '%d/%m/%Y').strftime('%Y-%m-%d')

@@ -14,7 +14,8 @@ class scat_student(models.Model):
     _order = "start_date desc,school_id"
 
     student_id = fields.Many2one('res.partner', string="Alumno", required=True)
-
+    student_name = fields.Char("Comensal", related="student_id.name",
+                               readonly=True, store=True)
     school_id = fields.Many2one('scat.school', string="Colegio", required=True)
 
     month = fields.Char(string="Mes", required=True)

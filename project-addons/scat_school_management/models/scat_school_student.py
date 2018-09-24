@@ -4,13 +4,15 @@ from odoo import fields, models, exceptions, api
 class scat_school_student(models.Model):
 
     _name = "scat.school.student"
+    _inherit = ['mail.thread', 'ir.needaction_mixin']
 
-    school_id = fields.Many2one('scat.school', string="Colegio", required=True)
+    school_id = fields.Many2one('scat.school', string="Colegio", required=True,
+                                track_visibility='onchange')
     student_id = fields.Many2one('res.partner', string="Alumno", required=True)
-    start_date = fields.Date(string="Fecha inicio", required=True)
-    end_date = fields.Date(string="Fecha fin")
+    start_date = fields.Date(string="Fecha inicio", required=True,
+                             track_visibility='onchange')
+    end_date = fields.Date(string="Fecha fin", track_visibility='onchange')
     company_name = fields.Char(string = "Compañía")
-
 
 
     @api.onchange('school_id')
