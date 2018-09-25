@@ -80,7 +80,19 @@ class ScatSchoolIseIntegration(models.Model):
         acc_number = str(child_data.CUENTABANCARIA).replace("-", "")
         bank = self.env['res.partner.bank'].\
             search([('acc_number', '=', acc_number),
-                    ('partner_id', '=', parent.id)])
+                    ('partner_id', '=', parent.id),
+                    '|', ('company_id', '=', exp.company_id.id),
+                    ('company_id', '=', False)])
+        today = fields.Date.today()
+        if child_data.FECHADESDESERVICIO:
+            start_date = datetime.\
+                strptime(str(child_data.FECHADESDESERVICIO),
+                         '%d/%m/%Y').strftime('%Y-%m-%d')
+            if start_date > today:
+                start_date = today
+        else:
+            start_date = today
+
         if not bank:
             if not parent.not_modify_bank_data:
                 mandates = self.env['account.banking.mandate'].\
@@ -103,15 +115,6 @@ class ScatSchoolIseIntegration(models.Model):
                          'acc_country_id': country and country.id or False}
             bank = self.env['res.partner.bank'].create(bank_vals)
             bank._onchange_acc_number_l10n_es_partner()
-            today = fields.Date.today()
-            if child_data.FECHADESDESERVICIO:
-                start_date = datetime.\
-                    strptime(str(child_data.FECHADESDESERVICIO),
-                             '%d/%m/%Y').strftime('%Y-%m-%d')
-                if start_date > today:
-                    start_date = today
-            else:
-                start_date = today
             mandate = self.env['account.banking.mandate'].\
                 create({'company_id': exp.company_id.id,
                         'format': 'sepa',
@@ -129,6 +132,22 @@ class ScatSchoolIseIntegration(models.Model):
                                        u" sería %s." %
                                        (parent.name, acc_number),
                                   message_type='notification')
+        else:
+            if not parent.not_modify_bank_data:
+                mandates = self.env['account.banking.mandate'].\
+                    search([('partner_id', '=', parent.id),
+                            ('state', 'in', ['valid']),
+                            ('company_id', '=', exp.company_id.id)])
+                if not mandates:
+                    mandate = self.env['account.banking.mandate'].\
+                        create({'company_id': exp.company_id.id,
+                                'format': 'sepa',
+                                'partner_bank_id': bank[0].id,
+                                'scheme': 'CORE',
+                                'recurrent_sequence_type': 'recurring',
+                                'type': 'recurrent',
+                                'signature_date': start_date})
+                    mandate.validate()
 
     @api.multi
     def _try_write_vat(self, parent, country, vat):
@@ -269,6 +288,13 @@ class ScatSchoolIseIntegration(models.Model):
                                                  pricelist_item.pricelist_id.
                                                  name),
                                          message_type='notification')
+                    if not parent_comp.customer_payment_mode_id:
+                        parent_comp.customer_payment_mode_id = \
+                            exp.company_id.ise_payment_mode_id.id
+                    if parent_comp.property_account_position_id.id != \
+                            exp.company_id.ise_fiscal_position_id.id:
+                        parent_comp.property_account_position_id = \
+                            exp.company_id.ise_fiscal_position_id.id
                 else:
                     parent_vals = self._get_parent_vals(child_data, exp)
                     parent_vals['property_product_pricelist'] = \
