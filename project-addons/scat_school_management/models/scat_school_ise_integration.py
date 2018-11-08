@@ -268,7 +268,8 @@ class ScatSchoolIseIntegration(models.Model):
                     search([('x_ise_nie', '=', child_data.NIFTITULAR)])
                 if parent:
                     if parent[0].id != child.parent_id.id:
-                        child.parent_id = parent[0].id
+                        child.with_context(force_company=exp.company_id.id).\
+                            parent_id = parent[0].id
                     parent = parent[0]
                     self._update_parent_data(parent, child_data, exp)
                     parent_comp = self.env['res.partner'].\
@@ -303,7 +304,8 @@ class ScatSchoolIseIntegration(models.Model):
                     parent = self.env['res.partner'].\
                         with_context(force_company=exp.company_id.id).\
                         create(parent_vals)
-                    child.parent_id = parent.id
+                    child.with_context(force_company=exp.company_id.id).\
+                        parent_id = parent.id
                     self._try_write_vat(parent, country, child_data.NIFTITULAR)
 
                 if child_data.CUENTABANCARIA:
